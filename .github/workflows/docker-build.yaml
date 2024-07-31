@@ -2,6 +2,7 @@
 name: docker-build
 
 permissions:
+  contents: read
   packages: write
 
 on:
