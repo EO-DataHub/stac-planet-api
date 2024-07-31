@@ -156,16 +156,16 @@ async def post_search(
     """
     auth = httpx.BasicAuth(username=credentials.username, password=credentials.password)
 
-    client = httpx.Client(
+    client = httpx.AsyncClient(
         auth=auth,
         verify=False,
         timeout=180,
     )
     base_url = str(request.base_url)
 
-    if search_request.token:
+    if getattr(search_request, "token", False):
         token_url = FERNET.decrypt(search_request.token).decode("utf-8")
-        planet_response = client.get(token_url)
+        planet_response = await client.get(token_url)
 
     else:
 
@@ -173,7 +173,7 @@ async def post_search(
             stac_request=search_request
         )
 
-        planet_response = client.post(
+        planet_response = await client.post(
             "https://api.planet.com/data/v1/quick-search",
             params=planet_parameters,
             json=planet_request,
