@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM docker.io/library/python:3.12-slim
 
 RUN mkdir -p /opt/stac-planet-api
 WORKDIR /opt/stac-planet-api
