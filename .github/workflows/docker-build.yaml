@@ -9,7 +9,7 @@ on:
 env:
   IMAGE_NAME: ${{ github.repository }}
   IMAGE_TAGS: "latest"
-  IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+  IMAGE_REGISTRY: ghcr.io
   REGISTRY_USER: ${{ github.actor }}
   REGISTRY_PASSWORD: ${{ github.token }}
 
