@@ -2,7 +2,7 @@
 name: helm-build
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 on:
