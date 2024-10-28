@@ -9,4 +9,5 @@ RUN pip install poetry
 
 RUN poetry install --only main
 
-ENTRYPOINT ["poetry", "run", "uvicorn", "stac_planet_api.api:app", "--host", "0.0.0.0"]
+ENTRYPOINT ["poetry", "run", "uvicorn", "stac_planet_api.api:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 8000

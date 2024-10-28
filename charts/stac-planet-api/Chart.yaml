@@ -1,0 +1,7 @@
+---
+apiVersion: v2
+name: stac-planet-api
+description: Interact with planet APIs using STAC.
+type: application
+version: 0.1.0
+appVersion: "0.0.0"
