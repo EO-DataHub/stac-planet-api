@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import re
 from datetime import datetime
 from typing import Annotated, Optional
@@ -8,8 +9,8 @@ from urllib.parse import unquote_plus
 import httpx
 import orjson
 from cryptography.fernet import Fernet
-from fastapi import Depends, FastAPI, Request
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi import FastAPI, Request
+from fastapi.security import HTTPBasic
 from pygeofilter.backends.cql2_json import to_cql2
 from pygeofilter.parsers.cql2_text import parse as parse_cql2_text
 from stac_fastapi.api.models import create_post_request_model
@@ -44,8 +45,9 @@ POST_REQUEST_MODEL = create_post_request_model(extensions)
 
 logger = logging.getLogger(__name__)
 
+root_path = os.environ.get('ROOT_PATH', '/')
 
-app = FastAPI()
+app = FastAPI(root_path=root_path)
 
 security = HTTPBasic()
 
@@ -72,7 +74,6 @@ def format_datetime_range(date_tuple: DateTimeType) -> str:
 @app.get("/search")
 async def get_search(
     request: Request,
-    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
     collections: Optional[str] = None,
     ids: Optional[str] = None,
     bbox: Optional[str] = None,
@@ -135,7 +136,6 @@ async def get_search(
     return await post_search(
         search_request=POST_REQUEST_MODEL(**search_request),
         request=request,
-        credentials=credentials,
     )
 
 
@@ -143,7 +143,6 @@ async def get_search(
 async def post_search(
     search_request: BaseSearchPostRequest,
     request: Request,
-    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
 ) -> ItemCollection:
     """Search planet items.
 
@@ -154,7 +153,9 @@ async def post_search(
     Returns:
         ItemCollection: The item, or `None` if the item was successfully deleted.
     """
-    auth = httpx.BasicAuth(username=credentials.username, password=credentials.password)
+
+    api_key = os.environ.get("PLANET_API_KEY")
+    auth = httpx.BasicAuth(username=api_key, password="")
 
     client = httpx.AsyncClient(
         auth=auth,
