@@ -228,7 +228,7 @@ async def item_collection(
     base_url = str(request.base_url)
 
     planet_parameters, planet_request = stac_to_planet_request(
-        stac_request={"collections": [collection_id]}
+        stac_request=BaseSearchPostRequest(collections=[collection_id])
     )
 
     planet_response = await client.post(
