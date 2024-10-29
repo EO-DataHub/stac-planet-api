@@ -244,7 +244,7 @@ async def item_collection(
     )
 
 
-@app.post("/collections/{collection_id}/items")
+@app.post("/collections/{collection_id}/items/{item_id}")
 async def get_item(
     collection_id: str,
     item_id: str,
