@@ -269,7 +269,7 @@ async def get_item(
     )
     base_url = str(request.base_url)
 
-    planet_response = await client.post(
+    planet_response = await client.get(
         f"https://api.planet.com/data/v1/item-types/{collection_id}/items/{item_id}",
     )
 
