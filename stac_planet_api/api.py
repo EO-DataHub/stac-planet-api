@@ -45,7 +45,7 @@ POST_REQUEST_MODEL = create_post_request_model(extensions)
 
 logger = logging.getLogger(__name__)
 
-root_path = os.environ.get('ROOT_PATH', '/')
+root_path = os.environ.get("ROOT_PATH", "/")
 
 app = FastAPI(root_path=root_path)
 
