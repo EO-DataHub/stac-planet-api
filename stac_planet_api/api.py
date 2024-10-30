@@ -1,15 +1,18 @@
 import json
 import logging
+import os
 import re
 from datetime import datetime
 from typing import Annotated, Optional
 from urllib.parse import unquote_plus
 
+import fastapi
+import fastapi.security
 import httpx
 import orjson
 from cryptography.fernet import Fernet
-from fastapi import Depends, FastAPI, Request
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi import FastAPI, Request
+from fastapi.security import HTTPBasic
 from pygeofilter.backends.cql2_json import to_cql2
 from pygeofilter.parsers.cql2_text import parse as parse_cql2_text
 from stac_fastapi.api.models import create_post_request_model
@@ -44,10 +47,11 @@ POST_REQUEST_MODEL = create_post_request_model(extensions)
 
 logger = logging.getLogger(__name__)
 
+root_path = os.environ.get("ROOT_PATH", "/")
 
-app = FastAPI()
+app = FastAPI(root_path=root_path)
 
-security = HTTPBasic()
+security = HTTPBasic(auto_error=False)
 
 
 def format_datetime_range(date_tuple: DateTimeType) -> str:
@@ -72,7 +76,9 @@ def format_datetime_range(date_tuple: DateTimeType) -> str:
 @app.get("/search")
 async def get_search(
     request: Request,
-    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+    credentials: Annotated[
+        fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)
+    ],
     collections: Optional[str] = None,
     ids: Optional[str] = None,
     bbox: Optional[str] = None,
@@ -143,7 +149,9 @@ async def get_search(
 async def post_search(
     search_request: BaseSearchPostRequest,
     request: Request,
-    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+    credentials: Annotated[
+        fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)
+    ],
 ) -> ItemCollection:
     """Search planet items.
 
@@ -154,7 +162,19 @@ async def post_search(
     Returns:
         ItemCollection: The item, or `None` if the item was successfully deleted.
     """
-    auth = httpx.BasicAuth(username=credentials.username, password=credentials.password)
+
+    # Use the api key if available, otherwise pass through basic credentials from the user.
+    api_key = os.environ.get("PLANET_API_KEY", None)
+    if api_key is not None:
+        auth = httpx.BasicAuth(username=api_key, password="")
+    elif credentials is not None:
+        auth = httpx.BasicAuth(
+            username=credentials.username, password=credentials.password
+        )
+    else:
+        raise fastapi.HTTPException(
+            status_code=401, detail="Credentials were not provided."
+        )
 
     client = httpx.AsyncClient(
         auth=auth,
