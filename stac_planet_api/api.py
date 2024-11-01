@@ -25,11 +25,11 @@ from stac_fastapi.extensions.core import (
 )
 from stac_fastapi.types.rfc3339 import DateTimeType
 from stac_fastapi.types.search import BaseSearchPostRequest
-from stac_pydantic import ItemCollection
+from stac_pydantic import Item, ItemCollection
 
 from stac_planet_api.config import Settings
 from stac_planet_api.request_adaptor import stac_to_planet_request
-from stac_planet_api.response_adaptor import planet_to_stac_response
+from stac_planet_api.response_adaptor import map_item, planet_to_stac_response
 
 settings = Settings()
 
@@ -52,6 +52,28 @@ root_path = os.environ.get("ROOT_PATH", "/")
 app = FastAPI(root_path=root_path)
 
 security = HTTPBasic(auto_error=False)
+
+
+def get_authenticated_client(credentials) -> httpx.Client:
+    """Create a httpx client with correct auth for the planet apis."""
+    # Use the api key if available, otherwise pass through basic credentials from the user.
+    api_key = os.environ.get("PLANET_API_KEY", None)
+    if api_key is not None:
+        auth = httpx.BasicAuth(username=api_key, password="")
+    elif credentials is not None:
+        auth = httpx.BasicAuth(
+            username=credentials.username, password=credentials.password
+        )
+    else:
+        raise fastapi.HTTPException(
+            status_code=401, detail="Credentials were not provided."
+        )
+
+    return httpx.AsyncClient(
+        auth=auth,
+        verify=False,
+        timeout=180,
+    )
 
 
 def format_datetime_range(date_tuple: DateTimeType) -> str:
@@ -92,6 +114,25 @@ async def get_search(
     filter: Optional[str] = None,
     filter_lang: Optional[str] = None,
 ) -> ItemCollection:
+    """GET Search planet items.
+
+    Args:
+        collections str: comma seperated list of collections.
+        ids str: comma seperated list of collections.
+        bbox: str: bounding box.
+        datetime: str: datetime bounds.
+        limit: int: number of items to return.
+        query: str: search query.
+        token: str: next/prev token.
+        fields: str: returned fields.
+        sortby: str: sort on fields.
+        intersects: str: geometry interescts.
+        filter: str: filter.
+        filter_lang: str: filter language.
+
+    Returns:
+        ItemCollection: The items.
+    """
     search_request = {
         "collections": collections.split(",") if collections else None,
         "ids": ids.split(",") if ids else None,
@@ -156,31 +197,13 @@ async def post_search(
     """Search planet items.
 
     Args:
-        search request (str): The identifier of the collection that contains the item.
-        item (stac_types.Item): The new item data.
+        search request (BaseSearchPostRequest): The search request.
 
     Returns:
-        ItemCollection: The item, or `None` if the item was successfully deleted.
+        ItemCollection: The items.
     """
 
-    # Use the api key if available, otherwise pass through basic credentials from the user.
-    api_key = os.environ.get("PLANET_API_KEY", None)
-    if api_key is not None:
-        auth = httpx.BasicAuth(username=api_key, password="")
-    elif credentials is not None:
-        auth = httpx.BasicAuth(
-            username=credentials.username, password=credentials.password
-        )
-    else:
-        raise fastapi.HTTPException(
-            status_code=401, detail="Credentials were not provided."
-        )
-
-    client = httpx.AsyncClient(
-        auth=auth,
-        verify=False,
-        timeout=180,
-    )
+    client = get_authenticated_client(credentials)
     base_url = str(request.base_url)
 
     if getattr(search_request, "token", False):
@@ -204,3 +227,65 @@ async def post_search(
     return planet_to_stac_response(
         planet_response=planet_response.json(), base_url=base_url, auth=auth
     )
+
+
+@app.post("/collections/{collection_id}/items")
+async def item_collection(
+    collection_id: str,
+    request: Request,
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> ItemCollection:
+    """POST Get planet items for collection.
+
+    Args:
+        collection_id (str): The identifier of the collection that contains the item.
+
+    Returns:
+        ItemCollection: The items.
+    """
+    client = get_authenticated_client(credentials)
+    base_url = str(request.base_url)
+
+    planet_parameters, planet_request = stac_to_planet_request(
+        stac_request=BaseSearchPostRequest(collections=[collection_id])
+    )
+
+    planet_response = await client.post(
+        "https://api.planet.com/data/v1/quick-search",
+        params=planet_parameters,
+        json=planet_request,
+    )
+
+    planet_response.raise_for_status()
+
+    return planet_to_stac_response(
+        planet_response=planet_response.json(), base_url=base_url, auth=auth
+    )
+
+
+@app.post("/collections/{collection_id}/items/{item_id}")
+async def get_item(
+    collection_id: str,
+    item_id: str,
+    request: Request,
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> Item:
+    """Get planet item.
+
+    Args:
+        collection_id (str): The identifier of the collection that contains the item.
+        item_id (str): The identifier of the item.
+
+    Returns:
+        Item: The item.
+    """
+    client = get_authenticated_client(credentials)
+    base_url = str(request.base_url)
+
+    planet_response = await client.get(
+        f"https://api.planet.com/data/v1/item-types/{collection_id}/items/{item_id}",
+    )
+
+    planet_response.raise_for_status()
+
+    return map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth)
