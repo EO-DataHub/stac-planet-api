@@ -54,6 +54,28 @@ app = FastAPI(root_path=root_path)
 security = HTTPBasic(auto_error=False)
 
 
+def get_authenticated_client(credentials) -> httpx.Client:
+    """Create a httpx client with correct auth for the planet apis."""
+    # Use the api key if available, otherwise pass through basic credentials from the user.
+    api_key = os.environ.get("PLANET_API_KEY", None)
+    if api_key is not None:
+        auth = httpx.BasicAuth(username=api_key, password="")
+    elif credentials is not None:
+        auth = httpx.BasicAuth(
+            username=credentials.username, password=credentials.password
+        )
+    else:
+        raise fastapi.HTTPException(
+            status_code=401, detail="Credentials were not provided."
+        )
+
+    return httpx.AsyncClient(
+        auth=auth,
+        verify=False,
+        timeout=180,
+    )
+
+
 def format_datetime_range(date_tuple: DateTimeType) -> str:
     """
     Convert a tuple of datetime objects or None into a formatted string for API requests.
@@ -181,24 +203,7 @@ async def post_search(
         ItemCollection: The items.
     """
 
-    # Use the api key if available, otherwise pass through basic credentials from the user.
-    api_key = os.environ.get("PLANET_API_KEY", None)
-    if api_key is not None:
-        auth = httpx.BasicAuth(username=api_key, password="")
-    elif credentials is not None:
-        auth = httpx.BasicAuth(
-            username=credentials.username, password=credentials.password
-        )
-    else:
-        raise fastapi.HTTPException(
-            status_code=401, detail="Credentials were not provided."
-        )
-
-    client = httpx.AsyncClient(
-        auth=auth,
-        verify=False,
-        timeout=180,
-    )
+    client = get_authenticated_client(credentials)
     base_url = str(request.base_url)
 
     if getattr(search_request, "token", False):
@@ -238,13 +243,7 @@ async def item_collection(
     Returns:
         ItemCollection: The items.
     """
-    auth = httpx.BasicAuth(username=credentials.username, password=credentials.password)
-
-    client = httpx.AsyncClient(
-        auth=auth,
-        verify=False,
-        timeout=180,
-    )
+    client = get_authenticated_client(credentials)
     base_url = str(request.base_url)
 
     planet_parameters, planet_request = stac_to_planet_request(
@@ -280,13 +279,7 @@ async def get_item(
     Returns:
         Item: The item.
     """
-    auth = httpx.BasicAuth(username=credentials.username, password=credentials.password)
-
-    client = httpx.AsyncClient(
-        auth=auth,
-        verify=False,
-        timeout=180,
-    )
+    client = get_authenticated_client(credentials)
     base_url = str(request.base_url)
 
     planet_response = await client.get(
