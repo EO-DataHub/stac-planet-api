@@ -77,7 +77,7 @@ def format_datetime_range(date_tuple: DateTimeType) -> str:
 async def get_queryables(
     request: Request,
     credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-) -> ItemCollection:
+) -> dict:
     """GET queryables for catalog.
 
     Returns:
@@ -91,7 +91,7 @@ async def get_collection_queryables(
     request: Request,
     credentials: Annotated[HTTPBasicCredentials, Depends(security)],
     collection_id: str,
-) -> ItemCollection:
+) -> dict:
     """GET queryables for collection.
 
     Returns:
