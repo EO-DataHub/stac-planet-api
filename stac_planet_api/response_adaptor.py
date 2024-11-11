@@ -10,7 +10,7 @@ settings = Settings()
 
 FERNET = Fernet(settings.fernet_key)
 
-with open("queyables.json", mode="r", encoding="utf-8") as file:
+with open("stac_planet_api/queyables.json", mode="r", encoding="utf-8") as file:
     QUERYABLES: dict = json.load(file)
 
 

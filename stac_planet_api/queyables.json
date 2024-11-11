@@ -755,7 +755,7 @@
     "wrs_row": {
       "description": "Nearest WRS (Worldwide Reference System) Row to the line-of-sight scene center.",
       "type": "integer"
-    },
+    }
   },
   "sentinel2l1c": {
     "abs_orbit_number": {
