@@ -1,0 +1,892 @@
+{
+  "psscene": {
+    "anomalous_pixels": {
+      "description": "Percentage of pixels that may have errors. Represented spatially in the UDM.",
+      "type": "number"
+    },
+    "clear_confidence_percent": {
+      "description": "Percentage value: per-pixel algorithmic confidence in 'clear' classification.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "clear_percent": {
+      "description": "Percent of clear values in the dataset. Clear values represent scene content areas (non-blackfilled) deemed to be not impacted by cloud, haze, shadow, or snow.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "cloud_cover": {
+      "description": "Ratio of the area covered by clouds to that which is uncovered.",
+      "type": "number"
+    },
+    "cloud_percent": {
+      "description": "Percent of cloud values in the dataset. Cloud values represent scene content areas (non-blackfilled) that contain opaque clouds which prevent reliable interpretation of the land cover content.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "ground_control": {
+      "description": "Positional accuracy of the item. If the item has uncertain positional accuracy, this value is false.",
+      "type": "boolean"
+    },
+    "gsd": {
+      "description": "Ground sample distance - the distance between pixel centers as measured on the ground in meters.",
+      "type": "number"
+    },
+    "heavy_haze_percent": {
+      "description": "Percent of heavy haze values in the dataset. Heavy haze values represent scene content areas (non-blackfilled) that contain thin low altitude clouds, higher altitude cirrus clouds, soot, and dust which allow fair recognition of land cover features, but not having reliable interpretation of the radiometry or surface reflectance.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "instrument": {
+      "description": "Name of the satellite instrument used to collect the image.",
+      "type": "string"
+    },
+    "item_type": {
+      "description": "Name of the item type.",
+      "type": "string"
+    },
+    "light_haze_percent": {
+      "description": "Percent of light haze values in the dataset. Light haze values represent scene content areas (non-blackfilled) that contain thin, low-altitude clouds, higher altitude cirrus clouds, and soot and dust which allow reliable recognition of land cover features, and that have up to +/-10% uncertainty on commonly used indices (EVI and NDWI).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "pixel_resolution": {
+      "description": "Pixel resolution of the imagery in meters.",
+      "type": "number"
+    },
+    "provider": {
+      "description": "Name of the item provider (e.g. 'planetscope', 'rapideye').",
+      "type": "string"
+    },
+    "published": {
+      "description": "Timestamp when the item was published to the Planet API.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "publishing_stage": {
+      "description": "Stage of publishing for an item. PSScene first publish can be to any state; preview, standard or finalized. The lowest quality state is preview. As an image goes through rectification, it moves to standard and, ultimately, to the finalized state. Note: some images remain in preview state and do not go through RPC refinement.",
+      "type": "string"
+    },
+    "quality_category": {
+      "description": "Planet image quality metric: standard or test. To qualify for standard image quality an image must meet a variety of quality standards, for example: band alignment or minimum number of missing pixels. If the image does not meet these criteria it is considered test quality.",
+      "type": "string"
+    },
+    "satellite_azimuth": {
+      "description": "Spacecraft off track pointing direction, in degrees (0-360).",
+      "type": "float"
+    },
+    "satellite_id": {
+      "description": "Globally unique satellite identifier.",
+      "type": "string"
+    },
+    "shadow_percent": {
+      "description": "Percent of shadow values in the dataset. Shadow values represent scene content areas (non-blackfilled) not fully exposed to the solar illumination as a result of atmospheric transmission losses due to cloud, haze, soot, and dust, and therefore do not allow for reliable interpretation of the radiometry or surface reflectance.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "snow_ice_percent": {
+      "description": "Percent of snow and ice values in dataset. Snow_ice values represent scene content areas (non-blackfilled) that are hidden below snow or ice.",
+      "type": "int [0-100]"
+    },
+    "strip_id": {
+      "description": "The unique identifier of the image stripe that the item came from.",
+      "type": "string"
+    },
+    "sun_azimuth": {
+      "description": "The angle of the sun, as seen by the observer, measured clockwise from the north (0 - 360).",
+      "type": "number"
+    },
+    "sun_elevation": {
+      "description": "The angle of the sun above the horizon (0 - 90).",
+      "type": "number"
+    },
+    "updated": {
+      "description": "Timestamp when the item record was last updated.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "view_angle": {
+      "description": "The satellite's across-track, off-nadir viewing angle. Positive numbers denote east, negative numbers denote west (-25 - +25).",
+      "type": "number"
+    },
+    "visible_confidence_percent": {
+      "description": "Visible values represent the fraction of the scene content (excluding the portion of the image which contains blackfill) which comprises clear, light haze, shadow, snow/ice categories, and is given as a percentage ranging from zero to one hundred.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "visible_percent": {
+      "description": "Average of confidence percent for clear_percent, light_haze_percent, shadow_percent and snow_ice_percent.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    }
+  },
+  "reorthotile": {
+    "anomalous_pixels": {
+      "description": "Percentage of pixels that may have errors. Represented spatially in the UDM.",
+      "type": "number"
+    },
+    "black_fill": {
+      "description": "The percentage of the item containing black fill.",
+      "type": "number"
+    },
+    "catalog_id": {
+      "description": "Base RapidEye Level 3A catalog id.",
+      "type": "string"
+    },
+    "cloud_cover": {
+      "description": "Average percentage of cloud coverage.",
+      "type": "number"
+    },
+    "columns": {
+      "description": "Number of columns in the image.",
+      "type": "integer"
+    },
+    "epsg_code": {
+      "description": "Ortho tile grid cell that the item is located in (not used if Scene).",
+      "type": "integer"
+    },
+    "grid_cell": {
+      "description": "The grid cell identifier of the gridded item.",
+      "type": "string"
+    },
+    "ground_control": {
+      "description": "Positional accuracy of the item. If the item has uncertain positional accuracy, this value will be false.",
+      "type": "boolean"
+    },
+    "gsd": {
+      "description": "Ground sample distance - the distance between pixel centers as measured on the ground in meters.",
+      "type": "number"
+    },
+    "item_type": {
+      "description": "Name of the item type.",
+      "type": "string"
+    },
+    "origin_x": {
+      "description": "ULX coordinate of the extent of the data. The coordinate references the top left corner of the top left pixel.",
+      "type": "number"
+    },
+    "origin_y": {
+      "description": "ULY coordinate of the extent of the data. The coordinate references the top left corner of the top left pixel.",
+      "type": "number"
+    },
+    "pixel_resolution": {
+      "description": "Pixel resolution of the imagery in meters.",
+      "type": "number"
+    },
+    "provider": {
+      "description": "Name of the item provider (e.g. “planetscope”, ”rapideye”).",
+      "type": "string"
+    },
+    "published": {
+      "description": "Timestamp that the item was published to the Planet API.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "rows": {
+      "description": "Number of rows in the image.",
+      "type": "integer"
+    },
+    "satellite_id": {
+      "description": "Globally unique satellite identifier.",
+      "type": "string"
+    },
+    "strip_id": {
+      "description": "The unique identifier of the image stripe that the item came from.",
+      "type": "stringsun_azimuth"
+    },
+    "sun_azimuth": {
+      "description": "The angle of the sun, as seen by the observer, measured clockwise from the north (0 - 360).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 360
+    },
+    "sun_elevation": {
+      "description": "The angle of the sun above the horizon (0 - 90).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 90
+    },
+    "updated": {
+      "description": "Timestamp that the item record was last updated.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "usable_data": {
+      "description": "Percentage of pixels that are usable, subtracting cloud cover and black fill.",
+      "type": "number"
+    },
+    "view_angle": {
+      "description": "The satellite's across-track, off-nadir viewing angle. Positive numbers denote east, negative numbers denote west (-25 - +25).",
+      "type": "number"
+    }
+  },
+  "rescene": {
+    "anomalous_pixels": {
+      "description": "Percentage of pixels that may have errors. Represented spatially in the UDM.",
+      "type": "number"
+    },
+    "black_fill": {
+      "description": "The percentage of the item containing black fill.",
+      "type": "number"
+    },
+    "catalog_id": {
+      "description": "Base RapidEye Level 3A catalog id.",
+      "type": "string"
+    },
+    "cloud_cover": {
+      "description": "Average percentage of cloud coverage.",
+      "type": "number"
+    },
+    "columns": {
+      "description": "Number of columns in the image.",
+      "type": "integer"
+    },
+    "gsd": {
+      "description": "Ground sample distance - the distance between pixel centers as measured on the ground in meters.",
+      "type": "number"
+    },
+    "item_type": {
+      "description": "Name of the item type.",
+      "type": "string"
+    },
+    "provider": {
+      "description": "Name of the item provider (e.g. “planetscope”, ”rapideye”).",
+      "type": "string"
+    },
+    "published": {
+      "description": "Timestamp that the item was published to the Planet API.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "rows": {
+      "description": "Number of rows in the image.",
+      "type": "integer"
+    },
+    "satellite_id": {
+      "description": "Globally unique satellite identifier.",
+      "type": "string"
+    },
+    "strip_id": {
+      "description": "The unique identifier of the image stripe that the item came from.",
+      "type": "string"
+    },
+    "sun_azimuth": {
+      "description": "The angle of the sun, as seen by the observer, measured clockwise from the north (0 - 360).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 360
+    },
+    "sun_elevation": {
+      "description": "The angle of the sun above the horizon (0 - 90).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 90
+    },
+    "updated": {
+      "description": "Timestamp that the item record was last updated.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "usable_data": {
+      "description": "Percentage of pixels that are usable, subtracting cloud cover and black fill.",
+      "type": "number"
+    },
+    "view_angle": {
+      "description": "The satellite's across-track, off-nadir viewing angle. Positive numbers denote east, negative numbers denote west (-25 - +25).",
+      "type": "number",
+      "minimum": -25,
+      "maximum": 25
+    }
+  },
+  "skysatscene": {
+    "camera_id": {
+      "description": "Camera used for imaging.",
+      "type": "string"
+    },
+    "clear_confidence_percent": {
+      "description": "percentage value: per-pixel algorithmic confidence in 'clear' classification",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "clear_percent": {
+      "description": "Percent of clear values in dataset. Clear values represents scene content areas (non-blackfilled) that are deemed to be not impacted by cloud, haze, shadow and/or snow.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "cloud_cover": {
+      "description": "Average percentage of cloud coverage.",
+      "type": "number"
+    },
+    "cloud_percent": {
+      "description": "Percent of cloud values in dataset. Cloud values represent scene content areas (non-blackfilled) that contain opaque clouds which prevent reliable interpretation of the land cover content.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "ground_control": {
+      "description": "Positional accuracy of the item. If the item has uncertain positional accuracy, this value will be false.",
+      "type": "boolean"
+    },
+    "gsd": {
+      "description": "Ground sample distance - the distance between pixel centers as measured on the ground in meters.",
+      "type": "number"
+    },
+    "heavy_haze_percent": {
+      "description": "Percent of heavy haze values in dataset. Heavy haze values represent scene content areas (non-blackfilled) that contain thin low altitude clouds, higher altitude cirrus clouds, soot and dust which allow fair recognition of land cover features, but not having reliable interpretation of the radiometry or surface reflectance.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "item_type": {
+      "description": "Name of the item type.",
+      "type": "string"
+    },
+    "light_haze_percent": {
+      "description": "Percent of light haze values in dataset. Light haze values represent scene content areas (non-blackfilled) that contain thin low altitude clouds, higher altitude cirrus clouds, soot and dust which allow reliable recognition of land cover features, and have up to +/-10% uncertainty on commonly used indices (EVI and NDWI).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "pixel_resolution": {
+      "description": "Pixel resolution of the imagery in meters.",
+      "type": "number"
+    },
+    "provider": {
+      "description": "Name of the item provider (e.g. “planetscope”, ”rapideye”).",
+      "type": "string"
+    },
+    "published": {
+      "description": "Timestamp that the item was published to the Planet API.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "publishing_stage": {
+      "description": "Stage of publishing for an item. SkySatCollect items will be first published and remain in 'finalized' stage.",
+      "type": "string"
+    },
+    "quality_category": {
+      "description": "Metric for image quality. To qualify for “standard” image quality an image must meet a variety of quality standards, for example: sun altitude greater than or equal to 10 degrees, off nadir view angle less than 20 degrees, and saturated pixels fewer than 20%. If the image does not meet these criteria it is considered “test” quality.",
+      "type": "string"
+    },
+    "satellite_azimuth": {
+      "description": "Angle from true north to the satellite vector at the time of imaging, averaged across the full SkySatCollect, projected on the horizontal plane in degrees (0 - 360).",
+      "type": "number"
+    },
+    "satellite_id": {
+      "description": "Globally unique satellite identifier.",
+      "type": "string"
+    },
+    "shadow_percent": {
+      "description": "Percent of shadow values in dataset. Shadow values represent scene content areas (non-blackfilled) that are not fully exposed to the solar illumination as a result of atmospheric transmission losses due to cloud, haze, soot and dust, and therefore do not allow for reliable interpretation of the radiometry or surface reflectance.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "snow_ice_percent": {
+      "description": "Percent of snow and ice values in dataset. Snow_ice values represent scene content areas (non-blackfilled) that are hidden below snow and/or ice.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "strip_id": {
+      "description": "The unique identifier of the image stripe that the item came from.",
+      "type": "string"
+    },
+    "sun_azimuth": {
+      "description": "The angle of the sun, as seen by the observer, measured clockwise from the north (0 - 360).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 360
+    },
+    "sun_elevation": {
+      "description": "The angle of the sun above the horizon (0 - 90).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 90
+    },
+    "updated": {
+      "description": "Timestamp that the item record was last updated.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "view_angle": {
+      "description": "The satellite's across-track, off-nadir viewing angle. Positive numbers denote east, negative numbers denote west (-25 - +25).",
+      "type": "number",
+      "minimum": -25,
+      "maximum": 25
+    },
+    "visible_confidence_percent": {
+      "description": "Visible values represent the fraction of the scene content (excluding the portion of the image which contains blackfill) which is comprised of clear, light haze, shadow, snow/ice categories, and is given as a percentage ranging from zero to one hundred.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "visible_percent": {
+      "description": "Average of confidence percent for clear_percent, light_haze_percent, shadow_percent and snow_ice_percent",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    }
+  },
+  "skysatcollect": {
+    "clear_confidence_percent": {
+      "description": "percentage value: per-pixel algorithmic confidence in 'clear' classification",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "clear_percent": {
+      "description": "Percent of clear values in dataset. Clear values represents scene content areas (non-blackfilled) that are deemed to be not impacted by cloud, haze, shadow and/or snow.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "cloud_cover": {
+      "description": "Average percentage of cloud coverage.",
+      "type": "number"
+    },
+    "cloud_percent": {
+      "description": "Percent of cloud values in dataset. Cloud values represent scene content areas (non-blackfilled) that contain opaque clouds which prevent reliable interpretation of the land cover content.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "ground_control_ratio": {
+      "description": "Ratio of individual scenes that are successfully rectified.",
+      "type": "number"
+    },
+    "gsd": {
+      "description": "Ground sample distance - the distance between pixel centers as measured on the ground in meters.",
+      "type": "number"
+    },
+    "heavy_haze_percent": {
+      "description": "Percent of heavy haze values in dataset. Heavy haze values represent scene content areas (non-blackfilled) that contain thin low altitude clouds, higher altitude cirrus clouds, soot and dust which allow fair recognition of land cover features, but not having reliable interpretation of the radiometry or surface reflectance.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "item_type": {
+      "description": "Name of the item type.",
+      "type": "string"
+    },
+    "light_haze_percent": {
+      "description": "Percent of light haze values in dataset. Light haze values represent scene content areas (non-blackfilled) that contain thin low altitude clouds, higher altitude cirrus clouds, soot and dust which allow reliable recognition of land cover features, and have up to +/-10% uncertainty on commonly used indices (EVI and NDWI).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "pixel_resolution": {
+      "description": "Pixel resolution of the imagery in meters.",
+      "type": "number"
+    },
+    "provider": {
+      "description": "Name of the item provider (e.g. “planetscope”, ”rapideye”).",
+      "type": "string"
+    },
+    "published": {
+      "description": "Timestamp that the item was published to the Planet API.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "publishing_stage": {
+      "description": "Stage of publishing for an item. SkySatCollect items will be first published and remain in 'finalized' stage.",
+      "type": "string"
+    },
+    "quality_category": {
+      "description": "Metric for image quality. To qualify for “standard” image quality an image must meet a variety of quality standards, for example: sun altitude greater than or equal to 10 degrees, off nadir view angle less than 20 degrees, and saturated pixels fewer than 20%. If the image does not meet these criteria it is considered “test” quality.",
+      "type": "string"
+    },
+    "satellite_azimuth": {
+      "description": "Angle from true north to the satellite vector at the time of imaging, averaged across the full SkySatCollect, projected on the horizontal plane in degrees (0 - 360).",
+      "type": "number"
+    },
+    "satellite_id": {
+      "description": "Globally unique satellite identifier.",
+      "type": "string"
+    },
+    "shadow_percent": {
+      "description": "Percent of shadow values in dataset. Shadow values represent scene content areas (non-blackfilled) that are not fully exposed to the solar illumination as a result of atmospheric transmission losses due to cloud, haze, soot and dust, and therefore do not allow for reliable interpretation of the radiometry or surface reflectance.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "snow_ice_percent": {
+      "description": "Percent of snow and ice values in dataset. Snow_ice values represent scene content areas (non-blackfilled) that are hidden below snow and/or ice.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "strip_id": {
+      "description": "The unique identifier of the image stripe that the item came from.",
+      "type": "string"
+    },
+    "sun_azimuth": {
+      "description": "The angle of the sun, as seen by the observer, measured clockwise from the north (0 - 360).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 360
+    },
+    "sun_elevation": {
+      "description": "The angle of the sun above the horizon (0 - 90).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 90
+    },
+    "updated": {
+      "description": "Timestamp that the item record was last updated.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "view_angle": {
+      "description": "The satellite's across-track, off-nadir viewing angle. Positive numbers denote east, negative numbers denote west (-25 - +25).",
+      "type": "number",
+      "minimum": -25,
+      "maximum": 25
+    },
+    "visible_confidence_percent": {
+      "description": "Visible values represent the fraction of the scene content (excluding the portion of the image which contains blackfill) which is comprised of clear, light haze, shadow, snow/ice categories, and is given as a percentage ranging from zero to one hundred.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "visible_percent": {
+      "description": "Average of confidence percent for clear_percent, light_haze_percent, shadow_percent and snow_ice_percent",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    }
+  },
+  "skysatvideo": {
+    "camera_id": {
+      "description": "Camera used for imaging.",
+      "type": "string"
+    },
+    "item_type": {
+      "description": "Name of the item type.",
+      "type": "string"
+    },
+    "provider": {
+      "description": "Name of the item provider (e.g. “planetscope”, ”rapideye”).",
+      "type": "string"
+    },
+    "published": {
+      "description": "Timestamp that the item was published to the Planet API.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "publishing_stage": {
+      "description": "Stage of publishing for an item. SkySatVideo items will be first published and remain in 'finalized' stage.",
+      "type": "string"
+    },
+    "quality_category": {
+      "description": "Metric for image quality. To qualify for “standard” image quality an image must meet a variety of quality standards, for example: sun altitude greater than or equal to 10 degrees, off nadir view angle less than 20 degrees, and saturated pixels fewer than 20%. If the image does not meet these criteria it is considered “test” quality.",
+      "type": "string"
+    },
+    "satellite_azimuth": {
+      "description": "Angle from true north to the satellite vector at the time of imaging, averaged across the full SkySatCollect, projected on the horizontal plane in degrees (0 - 360).",
+      "type": "number"
+    },
+    "satellite_id": {
+      "description": "Globally unique satellite identifier.",
+      "type": "string"
+    },
+    "strip_id": {
+      "description": "The unique identifier of the image stripe that the item came from.",
+      "type": "string"
+    },
+    "sun_azimuth": {
+      "description": "The angle of the sun, as seen by the observer, measured clockwise from the north (0 - 360).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 360
+    },
+    "sun_elevation": {
+      "description": "The angle of the sun above the horizon (0 - 90).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 90
+    },
+    "updated": {
+      "description": "Timestamp that the item record was last updated.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "view_angle": {
+      "description": "The satellite's across-track, off-nadir viewing angle. Positive numbers denote east, negative numbers denote west (-25 - +25).",
+      "type": "number",
+      "minimum": -25,
+      "maximum": 25
+    }
+  },
+  "landsat8l1g": {
+    "anomalous_pixels": {
+      "description": "Ratio of pixels that may have errors. Represented spatially in the UDM.",
+      "type": "number"
+    },
+    "cloud_cover": {
+      "description": "Ratio of the pixels covered by clouds.",
+      "type": "number"
+    },
+    "collection": {
+      "description": "Landsat collection number.",
+      "type": "integer"
+    },
+    "columns": {
+      "description": "Number of columns in the image.",
+      "type": "integer"
+    },
+    "data_type": {
+      "description": "The processing level of the product.",
+      "type": "string"
+    },
+    "epsg_code": {
+      "description": "Ortho tile grid cell that the item is located in (not used if Scene).",
+      "type": "integer"
+    },
+    "gsd": {
+      "description": "Ground sample distance - the distance between pixel centers as measured on the ground in meters.",
+      "type": "number"
+    },
+    "instrument": {
+      "description": "Name of the satellite instrument used to collect the image.",
+      "type": "string"
+    },
+    "item_type": {
+      "description": "Name of the item type.",
+      "type": "string"
+    },
+    "origin_x": {
+      "description": "ULX coordinate of the extent of the data. The coordinate references the top left corner of the top left pixel.",
+      "type": "number"
+    },
+    "origin_y": {
+      "description": "ULY coordinate of the extent of the data. The coordinate references the top left corner of the top left pixel.",
+      "type": "number"
+    },
+    "pixel_resolution": {
+      "description": "Pixel resolution of the imagery in meters.",
+      "type": "number"
+    },
+    "processed": {
+      "description": "Timestamp that the item was processed.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "product_id": {
+      "description": "Unique identifier of the product.",
+      "type": "string"
+    },
+    "provider": {
+      "description": "Name of the item provider (e.g. “planetscope”, ”rapideye”).",
+      "type": "string"
+    },
+    "published": {
+      "description": "Timestamp that the item was published to the Planet API.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "quality_category": {
+      "description": "Planet image quality metric: Standard or Test. To qualify for 'standard' image quality an image must meet a variety of quality standards, for example: PAN motion blur less than 1.15 pixels, compression bits per pixel less than 3. If the image does not meet these criteria it is considered 'test' quality.",
+      "type": "string"
+    },
+    "rows": {
+      "description": "Number of rows in the image.",
+      "type": "integer"
+    },
+    "satellite_id": {
+      "description": "Globally unique satellite identifier.",
+      "type": "string"
+    },
+    "sun_azimuth": {
+      "description": "The angle of the sun, as seen by the observer, measured clockwise from the north (0 - 360).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 360
+    },
+    "sun_elevation": {
+      "description": "The angle of the sun above the horizon (0 - 90).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 90
+    },
+    "updated": {
+      "description": "Timestamp that the item record was last updated.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "usable_data": {
+      "description": "Percentage of pixels that are usable, subtracting cloud cover and black fill.",
+      "type": "number"
+    },
+    "view_angle": {
+      "description": "The satellite's across-track, off-nadir viewing angle. Positive numbers denote east, negative numbers denote west (-25 - +25).",
+      "type": "number",
+      "minimum": -25,
+      "maximum": 25
+    },
+    "wrs_path": {
+      "description": "Nearest WRS (Worldwide Reference System) path to the line-of-sight scene center.",
+      "type": "integer"
+    },
+    "wrs_row": {
+      "description": "Nearest WRS (Worldwide Reference System) Row to the line-of-sight scene center.",
+      "type": "integer"
+    }
+  },
+  "sentinel2l1c": {
+    "abs_orbit_number": {
+      "description": "Absolute orbit number.",
+      "type": "integer"
+    },
+    "anomalous_pixels": {
+      "description": "Percentage of pixels that may have errors. Represented spatially in the UDM.",
+      "type": "number"
+    },
+    "black_fill": {
+      "description": "The percentage of the item containing black fill.",
+      "type": "number"
+    },
+    "cloud_cover": {
+      "description": "Average percentage of cloud coverage.",
+      "type": "number"
+    },
+    "columns": {
+      "description": "Number of columns in the image.",
+      "type": "integer"
+    },
+    "data_type": {
+      "description": "The processing level of the product.",
+      "type": "string"
+    },
+    "datatake_id": {
+      "description": "Unique identifier of the data take.",
+      "type": "string"
+    },
+    "epsg_code": {
+      "description": "Ortho tile grid cell that the item is located in (not used if Scene).",
+      "type": "integer"
+    },
+    "granule_id": {
+      "description": "Unique identifier of the granule PDI.",
+      "type": "string"
+    },
+    "gsd": {
+      "description": "Ground sample distance - the distance between pixel centers as measured on the ground in meters.",
+      "type": "number"
+    },
+    "instrument": {
+      "description": "Name of the satellite instrument used to collect the image.",
+      "type": "string"
+    },
+    "item_type": {
+      "description": "Name of the item type.",
+      "type": "string"
+    },
+    "mgrs_grid_id": {
+      "description": "The Military Grid Reference System (MGRS) ID.",
+      "type": "string"
+    },
+    "origin_x": {
+      "description": "ULX coordinate of the extent of the data. The coordinate references the top left corner of the top left pixel.",
+      "type": "number"
+    },
+    "origin_y": {
+      "description": "ULY coordinate of the extent of the data. The coordinate references the top left corner of the top left pixel.",
+      "type": "number"
+    },
+    "pixel_resolution": {
+      "description": "Pixel resolution of the imagery in meters.",
+      "type": "number"
+    },
+    "product_generation_time": {
+      "description": "Time it took to process the product.",
+      "type": "integer"
+    },
+    "product_id": {
+      "description": "Unique identifier of the product.",
+      "type": "string"
+    },
+    "provider": {
+      "description": "Name of the item provider (e.g. “planetscope”, ”rapideye”).",
+      "type": "string"
+    },
+    "published": {
+      "description": "Timestamp that the item was published to the Planet API.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "quality_category": {
+      "description": "Planet image quality metric: Standard or Test. To qualify for 'standard' image quality an image must meet a variety of quality standards, for example: PAN motion blur less than 1.15 pixels, compression bits per pixel less than 3. If the image does not meet these criteria it is considered 'test' quality.",
+      "type": "string"
+    },
+    "rel_orbit_number": {
+      "description": "Relative orbit number (within the cycle).",
+      "type": "integer"
+    },
+    "rows": {
+      "description": "Number of rows in the image.",
+      "type": "integer"
+    },
+    "s2_processor_version": {
+      "description": "Version of the s2 processor.",
+      "type": "string"
+    },
+    "satellite_id": {
+      "description": "Globally unique satellite identifier.",
+      "type": "string"
+    },
+    "sun_azimuth": {
+      "description": "The angle of the sun, as seen by the observer, measured clockwise from the north (0 - 360).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 360
+    },
+    "sun_elevation": {
+      "description": "The angle of the sun above the horizon (0 - 90).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 90
+    },
+    "updated": {
+      "description": "Timestamp that the item record was last updated.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(\\+00:00|Z)$"
+    },
+    "usable_data": {
+      "description": "Percentage of pixels that are usable, subtracting cloud cover and black fill.",
+      "type": "number"
+    },
+    "view_angle": {
+      "description": "The satellite's across-track, off-nadir viewing angle. Positive numbers denote east, negative numbers denote west (-25 - +25).",
+      "type": "number",
+      "minimum": -25,
+      "maximum": 25
+    }
+  }
+}

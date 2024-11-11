@@ -29,7 +29,11 @@ from stac_pydantic import Item, ItemCollection
 
 from stac_planet_api.config import Settings
 from stac_planet_api.request_adaptor import stac_to_planet_request
-from stac_planet_api.response_adaptor import map_item, planet_to_stac_response
+from stac_planet_api.response_adaptor import (
+    get_quertables,
+    map_item,
+    planet_to_stac_response,
+)
 
 settings = Settings()
 
@@ -93,6 +97,33 @@ def format_datetime_range(date_tuple: DateTimeType) -> str:
 
     start, end = date_tuple
     return f"{format_datetime(start)}/{format_datetime(end)}"
+
+
+@app.get("/queryables")
+async def get_queryables(
+    request: Request,
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> dict:
+    """GET queryables for catalog.
+
+    Returns:
+        dict: Queryables for the catalog.
+    """
+    return get_quertables()
+
+
+@app.get("/queryables/{collection_id}")
+async def get_collection_queryables(
+    request: Request,
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+    collection_id: str,
+) -> dict:
+    """GET queryables for collection.
+
+    Returns:
+        dict: Queryables for the catalog.
+    """
+    return get_quertables(collection_id=collection_id)
 
 
 @app.get("/search")

@@ -1,3 +1,4 @@
+import json
 from urllib.parse import urljoin
 
 import httpx
@@ -8,6 +9,9 @@ from stac_planet_api.config import Settings
 settings = Settings()
 
 FERNET = Fernet(settings.fernet_key)
+
+with open("stac_planet_api/queyables.json", mode="r", encoding="utf-8") as file:
+    QUERYABLES: dict = json.load(file)
 
 
 def get_item_links(base_url: str, collection_id: str, item_id: str) -> list:
@@ -198,6 +202,51 @@ def map_item(planet_item, base_url, auth):
             auth=auth,
         ),
     }
+
+
+def get_quertables(collection_id: str = ""):
+
+    queryables = {
+        "$schema": "https://json-schema.org/draft/2019-09/schema",
+        "$id": "https://stac-api.example.com/queryables",
+        "type": "object",
+        "title": "Queryables for Example STAC API",
+        "description": "Queryable names for the example STAC API Item Search filter.",
+        "properties": {
+            "id": {
+                "description": "ID",
+                "$ref": "https://schemas.stacspec.org/v1.0.0/item-spec/json-schema/item.json#/id",
+            },
+            "collection": {
+                "description": "Collection",
+                "$ref": "https://schemas.stacspec.org/v1.0.0/item-spec/json-schema/item.json#/collection",
+            },
+            "geometry": {
+                "description": "Geometry",
+                "$ref": "https://schemas.stacspec.org/v1.0.0/item-spec/json-schema/item.json#/geometry",
+            },
+            "datetime": {
+                "description": "Datetime",
+                "$ref": "https://schemas.stacspec.org/v1.0.0/item-spec/json-schema/datetime.json#/properties/datetime",
+            },
+            "acquired": {
+                "description": "Timestamp when the item was captured.",
+                "type": "string",
+                "format": "date-time",
+                "pattern": "(\\+00:00|Z)$",
+            },
+        },
+        "additionalProperties": True,
+    }
+
+    if collection_id:
+        queryables["properties"] |= QUERYABLES[collection_id.lower()]
+
+    else:
+        for collection_queryables in QUERYABLES.values():
+            queryables["properties"] |= collection_queryables
+
+    return queryables
 
 
 def planet_to_stac_response(planet_response: dict, base_url: str, auth):
