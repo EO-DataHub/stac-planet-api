@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "stac-planet-api"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["Rhys Evans <rhys.r.evans@stfc.ac.uk>", "Guyon Duifhuizen <guyon.duifhuizen@planet.com>"]
 readme = "README.md"
