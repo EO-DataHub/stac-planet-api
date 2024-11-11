@@ -11,8 +11,8 @@ import fastapi.security
 import httpx
 import orjson
 from cryptography.fernet import Fernet
-from fastapi import FastAPI, Request
-from fastapi.security import HTTPBasic
+from fastapi import FastAPI, Request, Depends
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pygeofilter.backends.cql2_json import to_cql2
 from pygeofilter.parsers.cql2_text import parse as parse_cql2_text
 from stac_fastapi.api.models import create_post_request_model
@@ -58,8 +58,8 @@ app = FastAPI(root_path=root_path)
 security = HTTPBasic(auto_error=False)
 
 
-def get_authenticated_client(credentials) -> httpx.Client:
-    """Create a httpx client with correct auth for the planet apis."""
+def get_auth(credentials) -> httpx.BasicAuth:
+    """Create a httpx auth for the planet apis."""
     # Use the api key if available, otherwise pass through basic credentials from the user.
     api_key = os.environ.get("PLANET_API_KEY", None)
     if api_key is not None:
@@ -72,6 +72,14 @@ def get_authenticated_client(credentials) -> httpx.Client:
         raise fastapi.HTTPException(
             status_code=401, detail="Credentials were not provided."
         )
+
+    return auth
+
+
+def get_authenticated_client(credentials) -> httpx.Client:
+    """Create a httpx client with correct auth for the planet apis."""
+
+    auth = get_auth(credentials)
 
     return httpx.AsyncClient(
         auth=auth,
@@ -237,6 +245,8 @@ async def post_search(
     client = get_authenticated_client(credentials)
     base_url = str(request.base_url)
 
+    auth = get_auth(credentials)
+
     if getattr(search_request, "token", False):
         token_url = FERNET.decrypt(search_request.token).decode("utf-8")
         planet_response = await client.get(token_url)
@@ -277,6 +287,8 @@ async def item_collection(
     client = get_authenticated_client(credentials)
     base_url = str(request.base_url)
 
+    auth = get_auth(credentials)
+
     planet_parameters, planet_request = stac_to_planet_request(
         stac_request=BaseSearchPostRequest(collections=[collection_id])
     )
@@ -313,10 +325,12 @@ async def get_item(
     client = get_authenticated_client(credentials)
     base_url = str(request.base_url)
 
+    auth = get_auth(credentials)
+
     planet_response = await client.get(
         f"https://api.planet.com/data/v1/item-types/{collection_id}/items/{item_id}",
     )
 
     planet_response.raise_for_status()
 
-    return map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth)
+    return map_item(planet_item=planet_response.json(), base_url=base_url)
