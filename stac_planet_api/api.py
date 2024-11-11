@@ -120,7 +120,7 @@ async def get_queryables(
     return get_quertables()
 
 
-@app.get("/queryables/{collection_id}")
+@app.get("/collections/{collection_id}/queryables")
 async def get_collection_queryables(
     request: Request,
     credentials: Annotated[HTTPBasicCredentials, Depends(security)],
@@ -270,8 +270,44 @@ async def post_search(
     )
 
 
+@app.get("/collections/{collection_id}/items")
+async def get_item_collection(
+    collection_id: str,
+    request: Request,
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> ItemCollection:
+    """GET Get planet items for collection.
+
+    Args:
+        collection_id (str): The identifier of the collection that contains the item.
+
+    Returns:
+        ItemCollection: The items.
+    """
+    client = get_authenticated_client(credentials)
+    base_url = str(request.base_url)
+
+    auth = get_auth(credentials)
+
+    planet_parameters, planet_request = stac_to_planet_request(
+        stac_request=BaseSearchPostRequest(collections=[collection_id])
+    )
+
+    planet_response = await client.post(
+        "https://api.planet.com/data/v1/quick-search",
+        params=planet_parameters,
+        json=planet_request,
+    )
+
+    planet_response.raise_for_status()
+
+    return planet_to_stac_response(
+        planet_response=planet_response.json(), base_url=base_url, auth=auth
+    )
+
+
 @app.post("/collections/{collection_id}/items")
-async def item_collection(
+async def post_item_collection(
     collection_id: str,
     request: Request,
     credentials: Annotated[HTTPBasicCredentials, Depends(security)],
@@ -307,6 +343,36 @@ async def item_collection(
 
 
 @app.post("/collections/{collection_id}/items/{item_id}")
+async def post_item(
+    collection_id: str,
+    item_id: str,
+    request: Request,
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> Item:
+    """Get planet item.
+
+    Args:
+        collection_id (str): The identifier of the collection that contains the item.
+        item_id (str): The identifier of the item.
+
+    Returns:
+        Item: The item.
+    """
+    client = get_authenticated_client(credentials)
+    base_url = str(request.base_url)
+
+    auth = get_auth(credentials)
+
+    planet_response = await client.get(
+        f"https://api.planet.com/data/v1/item-types/{collection_id}/items/{item_id}",
+    )
+
+    planet_response.raise_for_status()
+
+    return map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth)
+
+
+@app.get("/collections/{collection_id}/items/{item_id}")
 async def get_item(
     collection_id: str,
     item_id: str,
