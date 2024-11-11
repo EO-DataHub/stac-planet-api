@@ -333,4 +333,4 @@ async def get_item(
 
     planet_response.raise_for_status()
 
-    return map_item(planet_item=planet_response.json(), base_url=base_url)
+    return map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth)
