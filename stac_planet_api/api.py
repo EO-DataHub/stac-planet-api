@@ -52,10 +52,22 @@ POST_REQUEST_MODEL = create_post_request_model(extensions)
 logger = logging.getLogger(__name__)
 
 root_path = os.environ.get("ROOT_PATH", "/")
+default_base_url = os.environ.get("BASE_URL")
 
 app = FastAPI(root_path=root_path)
 
 security = HTTPBasic(auto_error=False)
+
+
+def get_base_url(request):
+    global default_base_url
+
+    if default_base_url:
+        if not default_base_url.endswith("/"):
+            default_base_url = default_base_url + "/"
+        return default_base_url
+    else:
+        return str(request.base_url)
 
 
 def get_auth(credentials) -> httpx.BasicAuth:
@@ -243,7 +255,7 @@ async def post_search(
     """
 
     client = get_authenticated_client(credentials)
-    base_url = str(request.base_url)
+    base_url = get_base_url(request)
 
     auth = get_auth(credentials)
 
@@ -285,7 +297,7 @@ async def get_item_collection(
         ItemCollection: The items.
     """
     client = get_authenticated_client(credentials)
-    base_url = str(request.base_url)
+    base_url = get_base_url(request)
 
     auth = get_auth(credentials)
 
@@ -321,7 +333,7 @@ async def post_item_collection(
         ItemCollection: The items.
     """
     client = get_authenticated_client(credentials)
-    base_url = str(request.base_url)
+    base_url = get_base_url(request)
 
     auth = get_auth(credentials)
 
@@ -359,7 +371,7 @@ async def post_item(
         Item: The item.
     """
     client = get_authenticated_client(credentials)
-    base_url = str(request.base_url)
+    base_url = get_base_url(request)
 
     auth = get_auth(credentials)
 
@@ -389,7 +401,7 @@ async def get_item(
         Item: The item.
     """
     client = get_authenticated_client(credentials)
-    base_url = str(request.base_url)
+    base_url = get_base_url(request)
 
     auth = get_auth(credentials)
 
