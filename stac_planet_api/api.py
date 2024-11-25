@@ -189,7 +189,10 @@ async def get_search(
 
     if sortby:
         search_request["sortby"] = [
-            {"field": sort[1:], "direction": "desc" if sort[0] == "-" else "asc"}
+            {
+                "field": sort[1:] if sort[0] in ["-", "+"] else sort,
+                "direction": "desc" if sort[0] == "-" else "asc",
+            }
             for sort in sortby
         ]
 
