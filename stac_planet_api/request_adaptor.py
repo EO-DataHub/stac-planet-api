@@ -93,8 +93,10 @@ def stac_to_planet_request(stac_request: dict) -> tuple[dict, dict]:
         planet_parameters["_page_size"] = limit
 
     if limit := getattr(stac_request, "sortby", None):
+        sort_param = limit[0].__dict__
+
         planet_parameters["_sort"] = (
-            f"{limit.get('field')} {limit.get('direction', 'asc')}"
+            f"{sort_param.get('field')} {sort_param.get('direction', 'asc').value}"
         )
 
     return planet_parameters, planet_request
