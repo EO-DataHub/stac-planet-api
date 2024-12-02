@@ -213,7 +213,7 @@ async def get_search(
                 "field": sort[1:] if sort[0] in ["-", "+"] else sort,
                 "direction": "desc" if sort[0] == "-" else "asc",
             }
-            for sort in sortby
+            for sort in sortby.split(",")
         ]
 
     if filter:
