@@ -78,11 +78,13 @@ def get_search_links(base_url: str, next_token: str, prev_token: str) -> list:
     return links
 
 
-def get_assets(thumbnail_href: str, assets_href: str, auth) -> dict:
+def get_assets(thumbnail_href: str, assets_href: str, auth, path:str=None) -> dict:
     """
     Get item assets
     """
-    output = {"thumbnail": {"href": thumbnail_href, "roles": ["thumbnail"]}}
+    output = {
+        "external_thumbnail": {"href": thumbnail_href}
+    }
 
     client = httpx.Client(
         auth=auth,
@@ -94,6 +96,14 @@ def get_assets(thumbnail_href: str, assets_href: str, auth) -> dict:
 
     for key, value in assets.items():
         output[key] = {"href": value["_links"]["_self"], "roles": ["data"]}
+
+    if path:
+        output['thumbnail'] = {
+            "href": f"{path}/thumbnail",
+            "roles": ["thumbnail"],
+            "size": 87826,
+            "location": "on_disk"
+        }
 
     return output
 
@@ -176,7 +186,7 @@ def get_bbox(coordinate_type: str, coordinates: list) -> list:
     return None
 
 
-def map_item(planet_item, base_url, auth):
+def map_item(planet_item, base_url, auth, path=None):
 
     return {
         "type": "Feature",
@@ -200,6 +210,7 @@ def map_item(planet_item, base_url, auth):
             thumbnail_href=planet_item["_links"]["thumbnail"],
             assets_href=planet_item["_links"]["assets"],
             auth=auth,
+            path=path
         ),
     }
 

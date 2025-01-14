@@ -11,7 +11,8 @@ import fastapi.security
 import httpx
 import orjson
 from cryptography.fernet import Fernet
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi.responses import Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pygeofilter.backends.cql2_json import to_cql2
 from pygeofilter.parsers.cql2_text import parse as parse_cql2_text
@@ -169,7 +170,7 @@ async def get_search(
 
     Args:
         collections str: comma seperated list of collections.
-        ids str: comma seperated list of collections.
+        ids str: comma separated list of collections.
         bbox: str: bounding box.
         datetime: str: datetime bounds.
         limit: int: number of items to return.
@@ -177,7 +178,7 @@ async def get_search(
         token: str: next/prev token.
         fields: str: returned fields.
         sortby: str: sort on fields.
-        intersects: str: geometry interescts.
+        intersects: str: geometry intersects.
         filter: str: filter.
         filter_lang: str: filter language.
 
@@ -414,4 +415,84 @@ async def get_item(
 
     planet_response.raise_for_status()
 
-    return map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth)
+    return map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth, path=request.url)
+
+
+@app.get("/collections/{collection_id}/items/{item_id}/thumbnail")
+async def get_item_thumbnail(
+    collection_id: str,
+    item_id: str,
+    request: Request,
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> Response:
+    """Get planet item.
+
+    Args:
+        collection_id (str): The identifier of the collection that contains the item.
+        item_id (str): The identifier of the item.
+
+    Returns:
+        Response: Thumbnail image
+    """
+    client = get_authenticated_client(credentials)
+    base_url = get_base_url(request)
+
+    auth = get_auth(credentials)
+
+    planet_response = await client.get(
+        f"https://api.planet.com/data/v1/item-types/{collection_id}/items/{item_id}",
+    )
+
+    planet_response.raise_for_status()
+
+    planet_data = map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth, path=request.url)
+
+    if planet_data['assets'].get('external_thumbnail'):
+        thumbnail_url = planet_data['assets']['external_thumbnail']['href']
+
+        thumbnail_response = await client.get(thumbnail_url)
+        thumbnail_response.raise_for_status()
+
+        return Response(content=thumbnail_response.content, media_type="image/png")
+
+    raise HTTPException(status_code=404, detail="External thumbnail link not found in item")
+
+
+@app.post("/collections/{collection_id}/items/{item_id}/thumbnail")
+async def post_item_thumbnail(
+    collection_id: str,
+    item_id: str,
+    request: Request,
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> Response:
+    """Get planet item.
+
+    Args:
+        collection_id (str): The identifier of the collection that contains the item.
+        item_id (str): The identifier of the item.
+
+    Returns:
+        Response: Thumbnail image
+    """
+    client = get_authenticated_client(credentials)
+    base_url = get_base_url(request)
+
+    auth = get_auth(credentials)
+
+    planet_response = await client.get(
+        f"https://api.planet.com/data/v1/item-types/{collection_id}/items/{item_id}",
+    )
+
+    planet_response.raise_for_status()
+
+    planet_data = map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth, path=request.url)
+
+    if planet_data['assets'].get('external_thumbnail'):
+        thumbnail_url = planet_data['assets']['external_thumbnail']['href']
+
+        thumbnail_response = await client.get(thumbnail_url)
+        thumbnail_response.raise_for_status()
+
+        return Response(content=thumbnail_response.content, media_type="image/png")
+
+    raise HTTPException(status_code=404, detail="External thumbnail link not found in item")
