@@ -33,7 +33,7 @@ from stac_planet_api.request_adaptor import stac_to_planet_request
 from stac_planet_api.response_adaptor import (
     get_quertables,
     map_item,
-    planet_to_stac_response, get_search_links,
+    planet_to_stac_response,
 )
 
 settings = Settings()
