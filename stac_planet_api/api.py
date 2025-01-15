@@ -33,7 +33,7 @@ from stac_planet_api.request_adaptor import stac_to_planet_request
 from stac_planet_api.response_adaptor import (
     get_quertables,
     map_item,
-    planet_to_stac_response,
+    planet_to_stac_response, get_search_links,
 )
 
 settings = Settings()
@@ -263,27 +263,58 @@ async def post_search(
 
     auth = get_auth(credentials)
 
-    if getattr(search_request, "token", False):
-        token_url = FERNET.decrypt(search_request.token).decode("utf-8")
-        planet_response = await client.get(token_url)
+    if search_request.ids:
+
+        all_collections = search_request.collections if search_request.collections else await get_collections(client)
+
+        all_items = []
+
+        for item_id in search_request.ids:
+            for collection_id in all_collections:
+                try:
+                    item = await get_item(collection_id=collection_id, item_id=item_id, request=request, credentials=credentials)
+                    all_items.append(item)
+                except httpx.HTTPStatusError:  # unable to find item in catalogue
+                    pass
+
+        return ItemCollection(**{
+            "type": "FeatureCollection",
+            "features": all_items,
+            "links": [
+                  {
+                    "rel": "self",
+                    "href": f"{base_url}search",
+                    "type": "application/geo+json"
+                  },
+                  {
+                    "rel": "root",
+                    "href": base_url,
+                    "type": "application/json"
+                  }],
+            })
 
     else:
+        if getattr(search_request, "token", False):
+            token_url = FERNET.decrypt(search_request.token).decode("utf-8")
+            planet_response = await client.get(token_url)
 
-        planet_parameters, planet_request = stac_to_planet_request(
-            stac_request=search_request
+        else:
+
+            planet_parameters, planet_request = stac_to_planet_request(
+                stac_request=search_request
+            )
+
+            planet_response = await client.post(
+                "https://api.planet.com/data/v1/quick-search",
+                params=planet_parameters,
+                json=planet_request,
+            )
+
+        planet_response.raise_for_status()
+
+        return planet_to_stac_response(
+            planet_response=planet_response.json(), base_url=base_url, auth=auth
         )
-
-        planet_response = await client.post(
-            "https://api.planet.com/data/v1/quick-search",
-            params=planet_parameters,
-            json=planet_request,
-        )
-
-    planet_response.raise_for_status()
-
-    return planet_to_stac_response(
-        planet_response=planet_response.json(), base_url=base_url, auth=auth
-    )
 
 
 @app.get("/collections/{collection_id}/items")
@@ -385,7 +416,9 @@ async def post_item(
 
     planet_response.raise_for_status()
 
-    return map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth)
+    item_path = f"{base_url}collections/{collection_id}/items/{item_id}"
+
+    return map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth, path=item_path)
 
 
 @app.get("/collections/{collection_id}/items/{item_id}")
@@ -415,7 +448,9 @@ async def get_item(
 
     planet_response.raise_for_status()
 
-    return map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth, path=request.url)
+    item_path = f"{base_url}collections/{collection_id}/items/{item_id}"
+
+    return map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth, path=item_path)
 
 
 @app.get("/collections/{collection_id}/items/{item_id}/thumbnail")
@@ -496,3 +531,11 @@ async def post_item_thumbnail(
         return Response(content=thumbnail_response.content, media_type="image/png")
 
     raise HTTPException(status_code=404, detail="External thumbnail link not found in item")
+
+
+async def get_collections(client) -> list:
+    """Get collections from Planet"""
+
+    planet_response = await client.get("https://api.planet.com/data/v1/item-types")
+
+    return [collection["id"] for collection in planet_response.json()["item_types"]]
