@@ -101,8 +101,6 @@ def get_assets(thumbnail_href: str, assets_href: str, auth, path:str=None) -> di
         output['thumbnail'] = {
             "href": f"{path}/thumbnail",
             "roles": ["thumbnail"],
-            "size": 87826,
-            "location": "on_disk"
         }
 
     return output
