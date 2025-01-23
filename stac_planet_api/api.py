@@ -185,6 +185,9 @@ async def get_search(
     Returns:
         ItemCollection: The items.
     """
+
+    limit = 20 if limit > 20 else limit
+
     search_request = {
         "collections": collections.split(",") if collections else None,
         "ids": ids.split(",") if ids else None,
