@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 from urllib.parse import urljoin
 
@@ -260,8 +261,11 @@ def get_quertables(collection_id: str = ""):
 
 def planet_to_stac_response(planet_response: dict, base_url: str, auth):
     stac_items = []
-    for planet_item in planet_response["features"]:
-        stac_items.append(map_item(planet_item, base_url, auth))
+
+    with concurrent.futures.ThreadPoolExecutor() as e:
+        fut = [e.submit(map_item, planet_item, base_url, auth) for planet_item in planet_response["features"]]
+        for r in concurrent.futures.as_completed(fut):
+            stac_items.append(r.result())
 
     return {
         "type": "FeatureCollection",
