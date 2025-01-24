@@ -195,6 +195,8 @@ def get_bbox(coordinate_type: str, coordinates: list) -> list:
 
 def map_item(planet_item, base_url, auth, path=None):
 
+    print(path)
+
     return {
         "type": "Feature",
         "stac_version": "1.0.0",
@@ -275,7 +277,13 @@ def planet_to_stac_response(planet_response: dict, base_url: str, auth):
     #     stac_items.append(map_item(planet_item, base_url, auth))
 
     with concurrent.futures.ThreadPoolExecutor() as e:
-        fut = [e.submit(map_item, planet_item, base_url, auth) for planet_item in planet_response["features"]]
+        fut = []
+        for planet_item in planet_response["features"]:
+            collection_id = planet_item["properties"]["item_type"]
+            item_id = planet_item["id"]
+            item_path = f"{base_url}collections/{collection_id}/items/{item_id}"
+            fut.append(e.submit(map_item, planet_item, base_url, auth, item_path))
+
         for r in concurrent.futures.as_completed(fut):
             try:
                 data = r.result()
