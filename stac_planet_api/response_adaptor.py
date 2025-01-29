@@ -195,8 +195,6 @@ def get_bbox(coordinate_type: str, coordinates: list) -> list:
 
 def map_item(planet_item, base_url, auth, path=None):
 
-    print(path)
-
     return {
         "type": "Feature",
         "stac_version": "1.0.0",
