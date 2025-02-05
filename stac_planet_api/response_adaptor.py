@@ -1,4 +1,6 @@
+import concurrent.futures
 import json
+from json import JSONDecodeError
 from urllib.parse import urljoin
 
 import httpx
@@ -92,7 +94,14 @@ def get_assets(thumbnail_href: str, assets_href: str, auth, path:str=None) -> di
         timeout=180,
     )
 
-    assets = client.get(assets_href).json()
+    count = 0
+    while count < 10:
+        count += 1
+        try:
+            assets = client.get(assets_href).json()
+            break
+        except JSONDecodeError:
+            pass
 
     for key, value in assets.items():
         output[key] = {"href": value["_links"]["_self"], "roles": ["data"]}
@@ -260,8 +269,25 @@ def get_quertables(collection_id: str = ""):
 
 def planet_to_stac_response(planet_response: dict, base_url: str, auth):
     stac_items = []
-    for planet_item in planet_response["features"]:
-        stac_items.append(map_item(planet_item, base_url, auth))
+
+    # keeping this for non-concurrency testing purposes
+    # for planet_item in planet_response["features"]:
+    #     stac_items.append(map_item(planet_item, base_url, auth))
+
+    with concurrent.futures.ThreadPoolExecutor() as e:
+        fut = []
+        for planet_item in planet_response["features"]:
+            collection_id = planet_item["properties"]["item_type"]
+            item_id = planet_item["id"]
+            item_path = f"{base_url}collections/{collection_id}/items/{item_id}"
+            fut.append(e.submit(map_item, planet_item, base_url, auth, item_path))
+
+        for r in concurrent.futures.as_completed(fut):
+            try:
+                data = r.result()
+                stac_items.append(data)
+            except json.decoder.JSONDecodeError as e:
+                pass
 
     return {
         "type": "FeatureCollection",

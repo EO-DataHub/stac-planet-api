@@ -27,6 +27,7 @@ from stac_fastapi.extensions.core import (
 from stac_fastapi.types.rfc3339 import DateTimeType
 from stac_fastapi.types.search import BaseSearchPostRequest
 from stac_pydantic import Item, ItemCollection
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from stac_planet_api.config import Settings
 from stac_planet_api.request_adaptor import stac_to_planet_request
@@ -57,7 +58,17 @@ default_base_url = os.environ.get("BASE_URL")
 
 app = FastAPI(root_path=root_path)
 
+class HeaderMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["Cache-Control"] = f"max-age={os.environ.get('CACHE_LENGTH', '3600')}"
+        return response
+
+app.add_middleware(HeaderMiddleware)
+
 security = HTTPBasic(auto_error=False)
+
+MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "10"))
 
 
 def get_base_url(request):
@@ -185,6 +196,7 @@ async def get_search(
     Returns:
         ItemCollection: The items.
     """
+
     search_request = {
         "collections": collections.split(",") if collections else None,
         "ids": ids.split(",") if ids else None,
@@ -263,6 +275,8 @@ async def post_search(
 
     auth = get_auth(credentials)
 
+    search_request.limit = MAX_ITEMS if search_request.limit > MAX_ITEMS else search_request.limit
+
     if search_request.ids:
 
         all_collections = search_request.collections if search_request.collections else await get_collections(client)
@@ -336,8 +350,13 @@ async def get_item_collection(
 
     auth = get_auth(credentials)
 
+    query_params = dict(request._query_params)
+
+    limit = int(query_params.get("limit", MAX_ITEMS))
+    query_params["limit"] = MAX_ITEMS if limit > MAX_ITEMS else limit
+
     planet_parameters, planet_request = stac_to_planet_request(
-        stac_request=BaseSearchPostRequest(collections=[collection_id])
+        stac_request=BaseSearchPostRequest(collections=[collection_id], **query_params)
     )
 
     planet_response = await client.post(
