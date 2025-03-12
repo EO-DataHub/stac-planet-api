@@ -1,3 +1,4 @@
+import itertools
 import json
 import logging
 import os
@@ -56,6 +57,12 @@ logger = logging.getLogger(__name__)
 root_path = os.environ.get("ROOT_PATH", "/")
 default_base_url = os.environ.get("BASE_URL")
 
+# Load all the planet api keys from the environment and setup a cycle so we can always use the next one.
+try:
+    PLANET_API_KEYS = itertools.cycle(os.environ.get("PLANET_API_KEYS").split(":"))
+except NameError:
+    PLANET_API_KEYS = None
+
 app = FastAPI(root_path=root_path)
 
 class HeaderMiddleware(BaseHTTPMiddleware):
@@ -85,8 +92,9 @@ def get_base_url(request):
 def get_auth(credentials) -> httpx.BasicAuth:
     """Create a httpx auth for the planet apis."""
     # Use the api key if available, otherwise pass through basic credentials from the user.
-    api_key = os.environ.get("PLANET_API_KEY", None)
-    if api_key is not None:
+
+    if PLANET_API_KEYS is not None:
+        api_key = next(PLANET_API_KEYS)
         auth = httpx.BasicAuth(username=api_key, password="")
     elif credentials is not None:
         auth = httpx.BasicAuth(
