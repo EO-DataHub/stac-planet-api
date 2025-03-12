@@ -10,6 +10,20 @@ COMPARISONS = {
 }
 
 
+def bbox_to_intersects(bbox):
+    latitudes = bbox[0::2]
+    longitudes = bbox[1::2]
+
+    intersects = []
+    for lat in latitudes:
+        for long in longitudes:
+            intersects.append([lat, long])
+
+    intersects.append(intersects[0])
+
+    return [intersects]
+
+
 def get_datetime(datetime_str: str) -> str:
     if datetime_str == "..":
         return None
@@ -69,6 +83,18 @@ def build_search_filter(stac_request):
                 "type": "GeometryFilter",
                 "field_name": "geometry",
                 "config": intersects.dict(),
+            }
+        )
+
+    if bbox := getattr(stac_request, "bbox", None):
+        config.append(
+            {
+                "type": "GeometryFilter",
+                "field_name": "geometry",
+                "config": {
+                    "type": "Polygon",
+                    "coordinates": bbox_to_intersects(bbox)
+                },
             }
         )
 
