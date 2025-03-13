@@ -159,6 +159,7 @@ async def get_collection_queryables(
 
 
 @app.get("/search")
+@app.post("/search")
 async def get_search(
     request: Request,
     credentials: Annotated[
@@ -246,15 +247,14 @@ async def get_search(
                 includes.add(field[1:] if field[0] in "+ " else field)
         search_request["fields"] = {"include": includes, "exclude": excludes}
 
-    return await post_search(
+    return await prepare_search(
         search_request=POST_REQUEST_MODEL(**search_request),
         request=request,
         credentials=credentials,
     )
 
 
-@app.post("/search")
-async def post_search(
+async def prepare_search(
     search_request: BaseSearchPostRequest,
     request: Request,
     credentials: Annotated[
