@@ -36,14 +36,19 @@ def datetime_filter(date_filter: str):
     start_date = get_datetime(start_date)
     end_date = get_datetime(end_date)
 
-    return {
+    dt_filter = {
         "type": "DateRangeFilter",
         "field_name": "acquired",
         "config": {
-            "gte": start_date,
-            "lte": end_date,
         },
     }
+
+    if start_date:
+        dt_filter["config"]["gte"] = start_date
+    if end_date:
+        dt_filter["config"]["lte"] = end_date
+
+    return dt_filter
 
 
 def comparison_filter(comp_filter):
