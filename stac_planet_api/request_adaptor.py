@@ -10,6 +10,20 @@ COMPARISONS = {
 }
 
 
+def bbox_to_intersects(bbox):
+    latitudes = bbox[0::2]
+    longitudes = bbox[1::2]
+
+    intersects = []
+    for lat in latitudes:
+        for long in longitudes:
+            intersects.append([lat, long])
+
+    intersects.append(intersects[0])
+
+    return [intersects]
+
+
 def get_datetime(datetime_str: str) -> str:
     if datetime_str == "..":
         return None
@@ -22,14 +36,19 @@ def datetime_filter(date_filter: str):
     start_date = get_datetime(start_date)
     end_date = get_datetime(end_date)
 
-    return {
+    dt_filter = {
         "type": "DateRangeFilter",
         "field_name": "acquired",
         "config": {
-            "gte": start_date,
-            "lte": end_date,
         },
     }
+
+    if start_date:
+        dt_filter["config"]["gte"] = start_date
+    if end_date:
+        dt_filter["config"]["lte"] = end_date
+
+    return dt_filter
 
 
 def comparison_filter(comp_filter):
@@ -69,6 +88,18 @@ def build_search_filter(stac_request):
                 "type": "GeometryFilter",
                 "field_name": "geometry",
                 "config": intersects.dict(),
+            }
+        )
+
+    if bbox := getattr(stac_request, "bbox", None):
+        config.append(
+            {
+                "type": "GeometryFilter",
+                "field_name": "geometry",
+                "config": {
+                    "type": "Polygon",
+                    "coordinates": bbox_to_intersects(bbox)
+                },
             }
         )
 

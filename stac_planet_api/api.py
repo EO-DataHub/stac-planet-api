@@ -120,25 +120,6 @@ def get_authenticated_client(credentials) -> httpx.Client:
     )
 
 
-def format_datetime_range(date_tuple: DateTimeType) -> str:
-    """
-    Convert a tuple of datetime objects or None into a formatted string for API requests.
-
-    Args:
-        date_tuple (tuple): A tuple containing two elements, each can be a datetime object or None.
-
-    Returns:
-        str: A string formatted as 'YYYY-MM-DDTHH:MM:SS.sssZ/YYYY-MM-DDTHH:MM:SS.sssZ', with '..' used if any element is None.
-    """
-
-    def format_datetime(dt):
-        """Format a single datetime object to the ISO8601 extended format with 'Z'."""
-        return datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z" if dt else ".."
-
-    start, end = date_tuple
-    return f"{format_datetime(start)}/{format_datetime(end)}"
-
-
 @app.get("/queryables")
 async def get_queryables(
     request: Request,
@@ -188,7 +169,7 @@ async def get_search(
     """GET Search planet items.
 
     Args:
-        collections str: comma seperated list of collections.
+        collections str: comma separated list of collections.
         ids str: comma separated list of collections.
         bbox: str: bounding box.
         datetime: str: datetime bounds.
@@ -223,7 +204,7 @@ async def get_search(
             filter_lang = match.group(1)
 
     if datetime:
-        search_request["datetime"] = format_datetime_range(datetime)
+        search_request["datetime"] = datetime
 
     if intersects:
         search_request["intersects"] = orjson.loads(unquote_plus(intersects))
@@ -321,7 +302,6 @@ async def post_search(
             planet_response = await client.get(token_url)
 
         else:
-
             planet_parameters, planet_request = stac_to_planet_request(
                 stac_request=search_request
             )
