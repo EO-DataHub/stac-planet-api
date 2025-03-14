@@ -58,7 +58,6 @@ def build_search_filter(stac_request):
     config = []
     if datetime_str := getattr(stac_request, "datetime", None):
         config.append(datetime_filter(datetime_str))
-
     # Multiple field filters, e.g.: "range", "string", "numberin
     if stac_filter := getattr(stac_request, "filter", None):
         config.append(convert_filter(stac_filter))
