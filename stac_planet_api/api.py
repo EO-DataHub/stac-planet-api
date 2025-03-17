@@ -148,6 +148,7 @@ async def get_collection_queryables(
 
 
 @app.get("/search")
+@app.post("/search")
 async def get_search(
     request: Request,
     credentials: Annotated[
@@ -235,15 +236,14 @@ async def get_search(
                 includes.add(field[1:] if field[0] in "+ " else field)
         search_request["fields"] = {"include": includes, "exclude": excludes}
 
-    return await post_search(
+    return await prepare_search(
         search_request=POST_REQUEST_MODEL(**search_request),
         request=request,
         credentials=credentials,
     )
 
 
-@app.post("/search")
-async def post_search(
+async def prepare_search(
     search_request: BaseSearchPostRequest,
     request: Request,
     credentials: Annotated[
@@ -320,6 +320,7 @@ async def post_search(
 
 
 @app.get("/collections/{collection_id}/items")
+@app.post("/collections/{collection_id}/items")
 async def get_item_collection(
     collection_id: str,
     request: Request,
@@ -360,75 +361,8 @@ async def get_item_collection(
     )
 
 
-@app.post("/collections/{collection_id}/items")
-async def post_item_collection(
-    collection_id: str,
-    request: Request,
-    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-) -> ItemCollection:
-    """POST Get planet items for collection.
-
-    Args:
-        collection_id (str): The identifier of the collection that contains the item.
-
-    Returns:
-        ItemCollection: The items.
-    """
-    client = get_authenticated_client(credentials)
-    base_url = get_base_url(request)
-
-    auth = get_auth(credentials)
-
-    planet_parameters, planet_request = stac_to_planet_request(
-        stac_request=BaseSearchPostRequest(collections=[collection_id])
-    )
-
-    planet_response = await client.post(
-        "https://api.planet.com/data/v1/quick-search",
-        params=planet_parameters,
-        json=planet_request,
-    )
-
-    planet_response.raise_for_status()
-
-    return planet_to_stac_response(
-        planet_response=planet_response.json(), base_url=base_url, auth=auth
-    )
-
-
-@app.post("/collections/{collection_id}/items/{item_id}")
-async def post_item(
-    collection_id: str,
-    item_id: str,
-    request: Request,
-    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-) -> Item:
-    """Get planet item.
-
-    Args:
-        collection_id (str): The identifier of the collection that contains the item.
-        item_id (str): The identifier of the item.
-
-    Returns:
-        Item: The item.
-    """
-    client = get_authenticated_client(credentials)
-    base_url = get_base_url(request)
-
-    auth = get_auth(credentials)
-
-    planet_response = await client.get(
-        f"https://api.planet.com/data/v1/item-types/{collection_id}/items/{item_id}",
-    )
-
-    planet_response.raise_for_status()
-
-    item_path = f"{base_url}collections/{collection_id}/items/{item_id}"
-
-    return map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth, path=item_path)
-
-
 @app.get("/collections/{collection_id}/items/{item_id}")
+@app.post("/collections/{collection_id}/items/{item_id}")
 async def get_item(
     collection_id: str,
     item_id: str,
@@ -461,47 +395,8 @@ async def get_item(
 
 
 @app.get("/collections/{collection_id}/items/{item_id}/thumbnail")
-async def get_item_thumbnail(
-    collection_id: str,
-    item_id: str,
-    request: Request,
-    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-) -> Response:
-    """Get planet item.
-
-    Args:
-        collection_id (str): The identifier of the collection that contains the item.
-        item_id (str): The identifier of the item.
-
-    Returns:
-        Response: Thumbnail image
-    """
-    client = get_authenticated_client(credentials)
-    base_url = get_base_url(request)
-
-    auth = get_auth(credentials)
-
-    planet_response = await client.get(
-        f"https://api.planet.com/data/v1/item-types/{collection_id}/items/{item_id}",
-    )
-
-    planet_response.raise_for_status()
-
-    planet_data = map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth, path=request.url)
-
-    if planet_data['assets'].get('external_thumbnail'):
-        thumbnail_url = planet_data['assets']['external_thumbnail']['href']
-
-        thumbnail_response = await client.get(thumbnail_url)
-        thumbnail_response.raise_for_status()
-
-        return Response(content=thumbnail_response.content, media_type="image/png")
-
-    raise HTTPException(status_code=404, detail="External thumbnail link not found in item")
-
-
 @app.post("/collections/{collection_id}/items/{item_id}/thumbnail")
-async def post_item_thumbnail(
+async def get_item_thumbnail(
     collection_id: str,
     item_id: str,
     request: Request,

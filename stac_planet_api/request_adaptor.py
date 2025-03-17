@@ -1,3 +1,5 @@
+import logging
+
 from stac_planet_api.config import Settings
 
 settings = Settings()
@@ -61,23 +63,40 @@ def comparison_filter(comp_filter):
     }
 
 
+def geometry_filter(geometry_filter):
+    return {
+        "type": "GeometryFilter",
+        "field_name": geometry_filter["args"][0]["property"],
+        "config": {
+            "type": "Polygon",
+            "coordinates": geometry_filter["args"][1]["coordinates"]
+        },
+    }
+
+
 def convert_filter(stac_filter: dict):
     if stac_filter["op"] in ["and", "or"]:
         config = []
         for sub_filter in stac_filter["args"]:
             config.append(convert_filter(sub_filter))
 
+        config = [c for c in config if c is not None]  # if there are any unrecognised filters then ignore them instead of erroring
         return {"type": f"{stac_filter['op'].title()}Filter", "config": config}
 
     elif stac_filter["op"] in ["<", ">", "<=", ">="]:
         return comparison_filter(stac_filter)
+
+    elif stac_filter["op"] in ["s_intersects"]:
+        return geometry_filter(stac_filter)
+
+    else:
+        logging.info(f"Filter {stac_filter['op']} not recognised")
 
 
 def build_search_filter(stac_request):
     config = []
     if datetime_str := getattr(stac_request, "datetime", None):
         config.append(datetime_filter(datetime_str))
-
     # Multiple field filters, e.g.: "range", "string", "numberin
     if stac_filter := getattr(stac_request, "filter", None):
         config.append(convert_filter(stac_filter))
