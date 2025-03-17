@@ -15,6 +15,8 @@ FERNET = Fernet(settings.fernet_key)
 with open("stac_planet_api/queyables.json", mode="r", encoding="utf-8") as file:
     QUERYABLES: dict = json.load(file)
 
+with open("stac_planet_api/asset_types.json", mode="r", encoding="utf-8") as file:
+    ASSET_TYPES: dict = json.load(file)
 
 def get_item_links(base_url: str, collection_id: str, item_id: str) -> list:
     """
@@ -80,12 +82,16 @@ def get_search_links(base_url: str, next_token: str, prev_token: str) -> list:
     return links
 
 
-def get_assets(thumbnail_href: str, assets_href: str, auth, path:str=None) -> dict:
+def get_assets(collection_id: str, thumbnail_href: str, assets_href: str, auth, path:str=None) -> dict:
     """
     Get item assets
     """
     output = {
-        "external_thumbnail": {"href": thumbnail_href}
+        "external_thumbnail": {
+            "href": thumbnail_href,
+            "roles": ["thumbnail"],
+            "type": "image/png",
+        }
     }
 
     client = httpx.Client(
@@ -104,12 +110,17 @@ def get_assets(thumbnail_href: str, assets_href: str, auth, path:str=None) -> di
             pass
 
     for key, value in assets.items():
-        output[key] = {"href": value["_links"]["_self"], "roles": ["data"]}
+        output[key] = {
+            "href": value["_links"]["_self"],
+            "roles": ["data"],
+            "type": ASSET_TYPES.get(collection_id, {}).get(value["type"], "UNKNOWN"),
+        }
 
     if path:
         output['thumbnail'] = {
             "href": f"{path}/thumbnail",
             "roles": ["thumbnail"],
+            "type": "image/png",
         }
 
     return output
@@ -214,6 +225,7 @@ def map_item(planet_item, base_url, auth, path=None):
             item_id=planet_item["id"],
         ),
         "assets": get_assets(
+            collection_id=planet_item["properties"]["item_type"],
             thumbnail_href=planet_item["_links"]["thumbnail"],
             assets_href=planet_item["_links"]["assets"],
             auth=auth,
