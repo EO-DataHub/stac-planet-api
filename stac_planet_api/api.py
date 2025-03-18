@@ -12,7 +12,7 @@ import fastapi.security
 import httpx
 import orjson
 from cryptography.fernet import Fernet
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, Depends, HTTPException, Query
 from fastapi.responses import Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pygeofilter.backends.cql2_json import to_cql2
@@ -154,18 +154,18 @@ async def get_search(
     credentials: Annotated[
         fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)
     ],
-    collections: Optional[str] = None,
-    ids: Optional[str] = None,
-    bbox: Optional[str] = None,
-    datetime: Optional[str] = None,
-    limit: Optional[int] = 10,
-    query: Optional[str] = None,
-    token: Optional[str] = None,
-    fields: Optional[str] = None,
-    sortby: Optional[str] = None,
-    intersects: Optional[str] = None,
-    filter: Optional[str] = None,
-    filter_lang: Optional[str] = None,
+    collections: Optional[str] = Query(None),
+    ids: Optional[str] = Query(None),
+    bbox: Optional[str] = Query(None),
+    datetime: Optional[str] = Query(None),
+    limit: Optional[int] = Query(10),
+    query: Optional[str] = Query(None),
+    token: Optional[str] = Query(None),
+    fields: Optional[str] = Query(None),
+    sortby: Optional[str] = Query(None),
+    intersects: Optional[str] = Query(None),
+    filter: Optional[str] = Query(None),
+    filter_lang: Optional[str] = Query(None),
 ) -> ItemCollection:
     """GET Search planet items.
 
