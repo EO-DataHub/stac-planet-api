@@ -24,7 +24,6 @@ from stac_fastapi.extensions.core import (
     SortExtension,
     TokenPaginationExtension,
 )
-from stac_fastapi.types.rfc3339 import DateTimeType
 from stac_fastapi.types.search import BaseSearchPostRequest
 from stac_pydantic import Item, ItemCollection
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -75,11 +74,6 @@ app.add_middleware(HeaderMiddleware)
 security = HTTPBasic(auto_error=False)
 
 MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "10"))
-
-
-class PlanetBaseSearchPostRequest(BaseSearchPostRequest):
-    filter: Optional[dict] = None
-
 
 def get_base_url(request):
     global default_base_url
@@ -246,7 +240,7 @@ async def get_search(
 
 
 async def prepare_search(
-    search_request: PlanetBaseSearchPostRequest,
+    search_request: POST_REQUEST_MODEL,
     request: Request,
     credentials: Annotated[
         fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)
@@ -323,7 +317,7 @@ async def prepare_search(
 
 @app.post("/search")
 async def post_search(
-    search_request: PlanetBaseSearchPostRequest,
+    search_request: POST_REQUEST_MODEL,
     request: Request,
     credentials: Annotated[
         fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)
