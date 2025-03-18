@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Any
 from urllib.parse import unquote_plus
 
 import fastapi
@@ -12,7 +12,7 @@ import fastapi.security
 import httpx
 import orjson
 from cryptography.fernet import Fernet
-from fastapi import FastAPI, Request, Depends, HTTPException, Query
+from fastapi import FastAPI, Request, Depends, HTTPException, Query, Body
 from fastapi.responses import Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pygeofilter.backends.cql2_json import to_cql2
@@ -166,6 +166,7 @@ async def get_search(
     intersects: Optional[str] = Query(None),
     filter: Optional[str] = Query(None),
     filter_lang: Optional[str] = Query(None),
+    body: Any = Body(None),
 ) -> ItemCollection:
     """GET Search planet items.
 
@@ -226,6 +227,9 @@ async def get_search(
             if filter_lang == "cql2-json"
             else to_cql2(parse_cql2_text(filter))
         )
+    elif body:
+        search_request["filter-lang"] = "cql2-json"
+        search_request["filter"] = body
 
     if fields:
         includes, excludes = set(), set()
