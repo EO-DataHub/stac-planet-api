@@ -89,7 +89,7 @@ def get_assets(collection_id: str, thumbnail_href: str, assets_href: str, auth, 
     output = {
         "external_thumbnail": {
             "href": thumbnail_href,
-            "roles": ["thumbnail"],
+            "roles": ["external_thumbnail"],
             "type": "image/png",
         }
     }
