@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import re
-from datetime import datetime
 from typing import Annotated, Optional
 from urllib.parse import unquote_plus
 
@@ -25,7 +24,6 @@ from stac_fastapi.extensions.core import (
     SortExtension,
     TokenPaginationExtension,
 )
-from stac_fastapi.types.rfc3339 import DateTimeType
 from stac_fastapi.types.search import BaseSearchPostRequest
 from stac_pydantic import Item, ItemCollection
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -76,7 +74,6 @@ app.add_middleware(HeaderMiddleware)
 security = HTTPBasic(auto_error=False)
 
 MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "10"))
-
 
 def get_base_url(request):
     global default_base_url
@@ -148,7 +145,6 @@ async def get_collection_queryables(
 
 
 @app.get("/search")
-@app.post("/search")
 async def get_search(
     request: Request,
     credentials: Annotated[
@@ -244,7 +240,84 @@ async def get_search(
 
 
 async def prepare_search(
-    search_request: BaseSearchPostRequest,
+    search_request: POST_REQUEST_MODEL,
+    request: Request,
+    credentials: Annotated[
+        fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)
+    ],
+) -> ItemCollection:
+    """Search planet items.
+
+    Args:
+        search request (BaseSearchPostRequest): The search request.
+
+    Returns:
+        ItemCollection: The items.
+    """
+
+    client = get_authenticated_client(credentials)
+    base_url = get_base_url(request)
+
+    auth = get_auth(credentials)
+
+    search_request.limit = MAX_ITEMS if search_request.limit > MAX_ITEMS else search_request.limit
+
+    if search_request.ids:
+
+        all_collections = search_request.collections if search_request.collections else await get_collections(client)
+
+        all_items = []
+
+        for item_id in search_request.ids:
+            for collection_id in all_collections:
+                try:
+                    item = await get_item(collection_id=collection_id, item_id=item_id, request=request, credentials=credentials)
+                    all_items.append(item)
+                except httpx.HTTPStatusError:  # unable to find item in catalogue
+                    pass
+
+        return ItemCollection(**{
+            "type": "FeatureCollection",
+            "features": all_items,
+            "links": [
+                  {
+                    "rel": "self",
+                    "href": f"{base_url}search",
+                    "type": "application/geo+json"
+                  },
+                  {
+                    "rel": "root",
+                    "href": base_url,
+                    "type": "application/json"
+                  }],
+            })
+
+    else:
+        if getattr(search_request, "token", False):
+            token_url = FERNET.decrypt(search_request.token).decode("utf-8")
+            planet_response = await client.get(token_url)
+
+        else:
+            planet_parameters, planet_request = stac_to_planet_request(
+                stac_request=search_request
+            )
+
+            planet_response = await client.post(
+                "https://api.planet.com/data/v1/quick-search",
+                params=planet_parameters,
+                json=planet_request,
+            )
+
+        planet_response.raise_for_status()
+
+        return planet_to_stac_response(
+            planet_response=planet_response.json(), base_url=base_url, auth=auth
+        )
+
+
+@app.post("/search")
+async def post_search(
+    search_request: POST_REQUEST_MODEL,
     request: Request,
     credentials: Annotated[
         fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)
