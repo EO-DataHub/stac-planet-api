@@ -56,7 +56,7 @@ def datetime_filter(date_filter: str):
 def comparison_filter(comp_filter):
     return {
         "type": "RangeFilter",
-        "field_name": comp_filter["args"][0]["property"],
+        "field_name": comp_filter["args"][0]["property"].lstrip("properties."),
         "config": {
             COMPARISONS[comp_filter["op"]]: comp_filter["args"][1],
         },
@@ -66,7 +66,7 @@ def comparison_filter(comp_filter):
 def geometry_filter(geometry_filter):
     return {
         "type": "GeometryFilter",
-        "field_name": geometry_filter["args"][0]["property"],
+        "field_name": geometry_filter["args"][0]["property"].lstrip("properties."),
         "config": {
             "type": "Polygon",
             "coordinates": geometry_filter["args"][1]["coordinates"]
