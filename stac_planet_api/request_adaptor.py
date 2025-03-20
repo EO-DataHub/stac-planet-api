@@ -81,6 +81,16 @@ def comparison_filter(comp_filter):
 
         return dt_filter
 
+    if comp_filter["op"].lower() == "between":
+        return {
+            "type": "RangeFilter",
+            "field_name": field_name,
+            "config": {
+                COMPARISONS[">="]: comp_filter["args"][1],
+                COMPARISONS["<="]: comp_filter["args"][2],
+            },
+        }
+
     return {
         "type": "RangeFilter",
         "field_name": field_name,
@@ -112,7 +122,7 @@ def convert_filter(stac_filter: dict):
         ]  # if there are any unrecognised filters then ignore them instead of erroring
         return {"type": f"{stac_filter['op'].title()}Filter", "config": config}
 
-    elif stac_filter["op"] in ["<", ">", "<=", ">="]:
+    elif stac_filter["op"].lower() in ["between", "<", ">", "<=", ">="]:
         return comparison_filter(stac_filter)
 
     elif stac_filter["op"] in ["s_intersects"]:
