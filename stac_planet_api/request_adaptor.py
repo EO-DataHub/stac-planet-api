@@ -64,7 +64,7 @@ def comparison_filter(comp_filter):
 
         if comp_filter["op"].lower() == "between":
             dt_filter = datetime_filter(
-                f"{comp_filter["args"][1]}/{comp_filter["args"][2]}"
+                f"{comp_filter['args'][1]}/{comp_filter['args'][2]}"
             )
 
         if comp_filter["op"] == ">":
