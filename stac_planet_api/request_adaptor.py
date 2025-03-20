@@ -41,8 +41,7 @@ def datetime_filter(date_filter: str):
     dt_filter = {
         "type": "DateRangeFilter",
         "field_name": "acquired",
-        "config": {
-        },
+        "config": {},
     }
 
     if start_date:
@@ -54,6 +53,13 @@ def datetime_filter(date_filter: str):
 
 
 def comparison_filter(comp_filter):
+    if comp_filter["args"][0]["property"] == "datetime":
+        if comp_filter["op"] in [">", ">="]:
+            return datetime_filter(f"{comp_filter["args"][1]}/..")
+
+        if comp_filter["op"] in ["<", "<="]:
+            return datetime_filter(f"../{comp_filter["args"][1]}")
+
     return {
         "type": "RangeFilter",
         "field_name": comp_filter["args"][0]["property"],
@@ -69,7 +75,7 @@ def geometry_filter(geometry_filter):
         "field_name": geometry_filter["args"][0]["property"],
         "config": {
             "type": "Polygon",
-            "coordinates": geometry_filter["args"][1]["coordinates"]
+            "coordinates": geometry_filter["args"][1]["coordinates"],
         },
     }
 
@@ -80,7 +86,9 @@ def convert_filter(stac_filter: dict):
         for sub_filter in stac_filter["args"]:
             config.append(convert_filter(sub_filter))
 
-        config = [c for c in config if c is not None]  # if there are any unrecognised filters then ignore them instead of erroring
+        config = [
+            c for c in config if c is not None
+        ]  # if there are any unrecognised filters then ignore them instead of erroring
         return {"type": f"{stac_filter['op'].title()}Filter", "config": config}
 
     elif stac_filter["op"] in ["<", ">", "<=", ">="]:
@@ -115,10 +123,7 @@ def build_search_filter(stac_request):
             {
                 "type": "GeometryFilter",
                 "field_name": "geometry",
-                "config": {
-                    "type": "Polygon",
-                    "coordinates": bbox_to_intersects(bbox)
-                },
+                "config": {"type": "Polygon", "coordinates": bbox_to_intersects(bbox)},
             }
         )
 
