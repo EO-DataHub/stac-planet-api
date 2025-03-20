@@ -81,7 +81,7 @@ def comparison_filter(comp_filter):
 
         return dt_filter
 
-    if comp_filter["op"] == "between":
+    if comp_filter["op"].lower() == "between":
         return {
             "type": "RangeFilter",
             "field_name": field_name,
