@@ -55,10 +55,10 @@ def datetime_filter(date_filter: str):
 def comparison_filter(comp_filter):
     if comp_filter["args"][0]["property"] == "datetime":
         if comp_filter["op"] in [">", ">="]:
-            return datetime_filter(f"{comp_filter["args"][1]}/..")
+            return datetime_filter(f"{comp_filter['args'][1]}/..")
 
         if comp_filter["op"] in ["<", "<="]:
-            return datetime_filter(f"../{comp_filter["args"][1]}")
+            return datetime_filter(f"../{comp_filter['args'][1]}")
 
     return {
         "type": "RangeFilter",
