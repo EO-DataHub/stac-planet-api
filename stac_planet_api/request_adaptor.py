@@ -53,12 +53,19 @@ def datetime_filter(date_filter: str):
 
 
 def comparison_filter(comp_filter):
-    if comp_filter["args"][0]["property"] == "datetime":
+    field_name = comp_filter["args"][0]["property"].lstrip("properties.")
+
+    if field_name == "datetime":
         dt_filter = {
             "type": "DateRangeFilter",
             "field_name": "acquired",
             "config": {},
         }
+
+        if comp_filter["op"].lower() == "between":
+            dt_filter = datetime_filter(
+                f"{comp_filter['args'][1]}/{comp_filter['args'][2]}"
+            )
 
         if comp_filter["op"] == ">":
             dt_filter["config"]["gt"] = comp_filter["args"][1]
@@ -76,7 +83,7 @@ def comparison_filter(comp_filter):
 
     return {
         "type": "RangeFilter",
-        "field_name": comp_filter["args"][0]["property"].lstrip("properties."),
+        "field_name": field_name,
         "config": {
             COMPARISONS[comp_filter["op"]]: comp_filter["args"][1],
         },
