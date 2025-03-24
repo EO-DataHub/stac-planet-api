@@ -21,7 +21,6 @@ from stac_fastapi.extensions.core import (
     FieldsExtension,
     FilterExtension,
     QueryExtension,
-    SortExtension,
     TokenPaginationExtension,
 )
 from stac_fastapi.types.search import BaseSearchPostRequest
@@ -43,7 +42,6 @@ FERNET = Fernet(settings.fernet_key)
 extensions = [
     FieldsExtension(),
     QueryExtension(),
-    SortExtension(),
     TokenPaginationExtension(),
     FilterExtension(),
 ]
