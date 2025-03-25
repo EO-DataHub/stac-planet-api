@@ -181,18 +181,16 @@ def stac_to_planet_request(stac_request: dict) -> tuple[dict, dict]:
         planet_parameters["_page_size"] = limit
 
     if sortby := getattr(stac_request, "sortby", None):
-        sort_param = sortby[0].__dict__
+        sort_param = sortby[0]
 
-        if field := sort_param.get("field") in [
+        if sort_param.field in [
             "published",
             "acquired",
             "datetime",
         ]:
-            field = "acquired" if field == "datetime" else field
+            field = "acquired" if sort_param.field else sort_param.field
 
-            planet_parameters["_sort"] = (
-                f"{field} {sort_param.get('direction', 'asc').value}"
-            )
+            planet_parameters["_sort"] = f"{field} {sort_param.direction.value}"
 
         else:
             raise fastapi.HTTPException(
