@@ -57,7 +57,11 @@ default_base_url = os.environ.get("BASE_URL")
 
 # Load all the planet api keys from the environment and setup a cycle so we can always use the next one.
 try:
-    PLANET_API_KEYS = itertools.cycle(os.environ.get("PLANET_API_KEYS").split(":"))
+    PLANET_API_KEYS = itertools.cycle(
+        os.environ.get(
+            "PLANET_API_KEYS",
+        ).split(":")
+    )
 except NameError:
     PLANET_API_KEYS = None
 
@@ -95,25 +99,26 @@ def get_auth(credentials) -> httpx.BasicAuth:
     """Create a httpx auth for the planet apis."""
     # Use the api key if available, otherwise pass through basic credentials from the user.
 
-    if PLANET_API_KEYS is not None:
-        api_key = next(PLANET_API_KEYS)
-        auth = httpx.BasicAuth(username=api_key, password="")
-    elif credentials is not None:
+    if credentials is not None:
+        api_key = credentials.username
         auth = httpx.BasicAuth(
             username=credentials.username, password=credentials.password
         )
+
+    elif PLANET_API_KEYS is not None:
+        api_key = next(PLANET_API_KEYS)
+        auth = httpx.BasicAuth(username=api_key, password="")
+
     else:
         raise fastapi.HTTPException(
             status_code=401, detail="Credentials were not provided."
         )
 
-    return auth
+    return auth, api_key
 
 
-def get_authenticated_client(credentials) -> httpx.Client:
+def get_authenticated_client(auth) -> httpx.Client:
     """Create a httpx client with correct auth for the planet apis."""
-
-    auth = get_auth(credentials)
 
     return httpx.AsyncClient(
         auth=auth,
@@ -237,97 +242,11 @@ async def get_search(
                 includes.add(field[1:] if field[0] in "+ " else field)
         search_request["fields"] = {"include": includes, "exclude": excludes}
 
-    return await prepare_search(
+    return await post_search(
         search_request=POST_REQUEST_MODEL(**search_request),
         request=request,
         credentials=credentials,
     )
-
-
-async def prepare_search(
-    search_request: POST_REQUEST_MODEL,
-    request: Request,
-    credentials: Annotated[
-        fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)
-    ],
-) -> ItemCollection:
-    """Search planet items.
-
-    Args:
-        search request (BaseSearchPostRequest): The search request.
-
-    Returns:
-        ItemCollection: The items.
-    """
-
-    client = get_authenticated_client(credentials)
-    base_url = get_base_url(request)
-
-    auth = get_auth(credentials)
-
-    search_request.limit = (
-        MAX_ITEMS if search_request.limit > MAX_ITEMS else search_request.limit
-    )
-
-    if search_request.ids:
-
-        all_collections = (
-            search_request.collections
-            if search_request.collections
-            else await get_collections(client)
-        )
-
-        all_items = []
-
-        for item_id in search_request.ids:
-            for collection_id in all_collections:
-                try:
-                    item = await get_item(
-                        collection_id=collection_id,
-                        item_id=item_id,
-                        request=request,
-                        credentials=credentials,
-                    )
-                    all_items.append(item)
-                except httpx.HTTPStatusError:  # unable to find item in catalogue
-                    pass
-
-        return ItemCollection(
-            **{
-                "type": "FeatureCollection",
-                "features": all_items,
-                "links": [
-                    {
-                        "rel": "self",
-                        "href": f"{base_url}search",
-                        "type": "application/geo+json",
-                    },
-                    {"rel": "root", "href": base_url, "type": "application/json"},
-                ],
-            }
-        )
-
-    else:
-        if token := search_request.token:
-            token_url = FERNET.decrypt(token).decode("utf-8")
-            planet_response = await client.get(token_url)
-
-        else:
-            planet_parameters, planet_request = stac_to_planet_request(
-                stac_request=search_request
-            )
-
-            planet_response = await client.post(
-                "https://api.planet.com/data/v1/quick-search",
-                params=planet_parameters,
-                json=planet_request,
-            )
-
-        planet_response.raise_for_status()
-
-        return planet_to_stac_response(
-            planet_response=planet_response.json(), base_url=base_url, auth=auth
-        )
 
 
 @app.post("/search")
@@ -346,75 +265,85 @@ async def post_search(
     Returns:
         ItemCollection: The items.
     """
-
-    client = get_authenticated_client(credentials)
     base_url = get_base_url(request)
 
-    auth = get_auth(credentials)
+    if token := search_request.token:
+        token_parts = FERNET.decrypt(token).decode("utf-8").split("\\")
 
-    search_request.limit = (
-        MAX_ITEMS if search_request.limit > MAX_ITEMS else search_request.limit
-    )
-
-    if search_request.ids:
-
-        all_collections = (
-            search_request.collections
-            if search_request.collections
-            else await get_collections(client)
+        credentials = fastapi.security.HTTPBasicCredentials(
+            username=token_parts[1], password=""
         )
 
-        all_items = []
+        auth, api_key = get_auth(credentials)
+        client = get_authenticated_client(auth=auth)
 
-        for item_id in search_request.ids:
-            for collection_id in all_collections:
-                try:
-                    item = await get_item(
-                        collection_id=collection_id,
-                        item_id=item_id,
-                        request=request,
-                        credentials=credentials,
-                    )
-                    all_items.append(item)
-                except httpx.HTTPStatusError:  # unable to find item in catalogue
-                    pass
-
-        return ItemCollection(
-            **{
-                "type": "FeatureCollection",
-                "features": all_items,
-                "links": [
-                    {
-                        "rel": "self",
-                        "href": f"{base_url}search",
-                        "type": "application/geo+json",
-                    },
-                    {"rel": "root", "href": base_url, "type": "application/json"},
-                ],
-            }
-        )
+        planet_response = await client.get(token_parts[0])
 
     else:
-        if token := search_request.token:
-            token_url = FERNET.decrypt(token).decode("utf-8")
-            planet_response = await client.get(token_url)
 
-        else:
-            planet_parameters, planet_request = stac_to_planet_request(
-                stac_request=search_request
-            )
+        auth, api_key = get_auth(credentials)
+        client = get_authenticated_client(auth)
 
-            planet_response = await client.post(
-                "https://api.planet.com/data/v1/quick-search",
-                params=planet_parameters,
-                json=planet_request,
-            )
-
-        planet_response.raise_for_status()
-
-        return planet_to_stac_response(
-            planet_response=planet_response.json(), base_url=base_url, auth=auth
+        search_request.limit = (
+            MAX_ITEMS if search_request.limit > MAX_ITEMS else search_request.limit
         )
+
+        if search_request.ids:
+
+            all_collections = (
+                search_request.collections
+                if search_request.collections
+                else await get_collections(client)
+            )
+
+            all_items = []
+
+            for item_id in search_request.ids:
+                for collection_id in all_collections:
+                    try:
+                        item = await get_item(
+                            collection_id=collection_id,
+                            item_id=item_id,
+                            request=request,
+                            credentials=credentials,
+                        )
+                        all_items.append(item)
+                    except httpx.HTTPStatusError:  # unable to find item in catalogue
+                        pass
+
+            return ItemCollection(
+                **{
+                    "type": "FeatureCollection",
+                    "features": all_items,
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": f"{base_url}search",
+                            "type": "application/geo+json",
+                        },
+                        {"rel": "root", "href": base_url, "type": "application/json"},
+                    ],
+                }
+            )
+
+        planet_parameters, planet_request = stac_to_planet_request(
+            stac_request=search_request
+        )
+
+        planet_response = await client.post(
+            "https://api.planet.com/data/v1/quick-search",
+            params=planet_parameters,
+            json=planet_request,
+        )
+
+    planet_response.raise_for_status()
+
+    return planet_to_stac_response(
+        planet_response=planet_response.json(),
+        base_url=base_url,
+        auth=auth,
+        api_key=api_key,
+    )
 
 
 @app.get("/collections/{collection_id}/items")
@@ -432,30 +361,18 @@ async def get_item_collection(
     Returns:
         ItemCollection: The items.
     """
-    client = get_authenticated_client(credentials)
-    base_url = get_base_url(request)
-
-    auth = get_auth(credentials)
-
     query_params = dict(request._query_params)
 
-    limit = int(query_params.get("limit", MAX_ITEMS))
-    query_params["limit"] = MAX_ITEMS if limit > MAX_ITEMS else limit
+    search_request = {
+        "collections": [collection_id],
+        "limit": int(query_params.get("limit", MAX_ITEMS)),
+        "token": query_params.get("token", None),
+    }
 
-    planet_parameters, planet_request = stac_to_planet_request(
-        stac_request=BaseSearchPostRequest(collections=[collection_id], **query_params)
-    )
-
-    planet_response = await client.post(
-        "https://api.planet.com/data/v1/quick-search",
-        params=planet_parameters,
-        json=planet_request,
-    )
-
-    planet_response.raise_for_status()
-
-    return planet_to_stac_response(
-        planet_response=planet_response.json(), base_url=base_url, auth=auth
+    return await post_search(
+        search_request=POST_REQUEST_MODEL(**search_request),
+        request=request,
+        credentials=credentials,
     )
 
 
@@ -476,10 +393,9 @@ async def get_item(
     Returns:
         Item: The item.
     """
-    client = get_authenticated_client(credentials)
+    auth, _ = get_auth(credentials)
+    client = get_authenticated_client(auth)
     base_url = get_base_url(request)
-
-    auth = get_auth(credentials)
 
     planet_response = await client.get(
         f"https://api.planet.com/data/v1/item-types/{collection_id}/items/{item_id}",
@@ -511,10 +427,9 @@ async def get_item_thumbnail(
     Returns:
         Response: Thumbnail image
     """
-    client = get_authenticated_client(credentials)
+    auth, _ = get_auth(credentials)
+    client = get_authenticated_client(auth)
     base_url = get_base_url(request)
-
-    auth = get_auth(credentials)
 
     planet_response = await client.get(
         f"https://api.planet.com/data/v1/item-types/{collection_id}/items/{item_id}",
