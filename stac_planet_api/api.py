@@ -65,7 +65,7 @@ try:
 except NameError:
     PLANET_API_KEYS = None
 
-app = FastAPI()
+app = FastAPI(root_path=root_path)
 
 
 class HeaderMiddleware(BaseHTTPMiddleware):
