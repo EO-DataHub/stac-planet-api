@@ -11,7 +11,7 @@ import fastapi.security
 import httpx
 import orjson
 from cryptography.fernet import Fernet
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pygeofilter.backends.cql2_json import to_cql2
@@ -63,17 +63,22 @@ except NameError:
 
 app = FastAPI(root_path=root_path)
 
+
 class HeaderMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
-        response.headers["Cache-Control"] = f"max-age={os.environ.get('CACHE_LENGTH', '3600')}"
+        response.headers["Cache-Control"] = (
+            f"max-age={os.environ.get('CACHE_LENGTH', '3600')}"
+        )
         return response
+
 
 app.add_middleware(HeaderMiddleware)
 
 security = HTTPBasic(auto_error=False)
 
 MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "10"))
+
 
 def get_base_url(request):
     global default_base_url
@@ -260,41 +265,51 @@ async def prepare_search(
 
     auth = get_auth(credentials)
 
-    search_request.limit = MAX_ITEMS if search_request.limit > MAX_ITEMS else search_request.limit
+    search_request.limit = (
+        MAX_ITEMS if search_request.limit > MAX_ITEMS else search_request.limit
+    )
 
     if search_request.ids:
 
-        all_collections = search_request.collections if search_request.collections else await get_collections(client)
+        all_collections = (
+            search_request.collections
+            if search_request.collections
+            else await get_collections(client)
+        )
 
         all_items = []
 
         for item_id in search_request.ids:
             for collection_id in all_collections:
                 try:
-                    item = await get_item(collection_id=collection_id, item_id=item_id, request=request, credentials=credentials)
+                    item = await get_item(
+                        collection_id=collection_id,
+                        item_id=item_id,
+                        request=request,
+                        credentials=credentials,
+                    )
                     all_items.append(item)
                 except httpx.HTTPStatusError:  # unable to find item in catalogue
                     pass
 
-        return ItemCollection(**{
-            "type": "FeatureCollection",
-            "features": all_items,
-            "links": [
-                  {
-                    "rel": "self",
-                    "href": f"{base_url}search",
-                    "type": "application/geo+json"
-                  },
-                  {
-                    "rel": "root",
-                    "href": base_url,
-                    "type": "application/json"
-                  }],
-            })
+        return ItemCollection(
+            **{
+                "type": "FeatureCollection",
+                "features": all_items,
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": f"{base_url}search",
+                        "type": "application/geo+json",
+                    },
+                    {"rel": "root", "href": base_url, "type": "application/json"},
+                ],
+            }
+        )
 
     else:
-        if getattr(search_request, "token", False):
-            token_url = FERNET.decrypt(search_request.token).decode("utf-8")
+        if token := search_request.token:
+            token_url = FERNET.decrypt(token).decode("utf-8")
             planet_response = await client.get(token_url)
 
         else:
@@ -337,41 +352,51 @@ async def post_search(
 
     auth = get_auth(credentials)
 
-    search_request.limit = MAX_ITEMS if search_request.limit > MAX_ITEMS else search_request.limit
+    search_request.limit = (
+        MAX_ITEMS if search_request.limit > MAX_ITEMS else search_request.limit
+    )
 
     if search_request.ids:
 
-        all_collections = search_request.collections if search_request.collections else await get_collections(client)
+        all_collections = (
+            search_request.collections
+            if search_request.collections
+            else await get_collections(client)
+        )
 
         all_items = []
 
         for item_id in search_request.ids:
             for collection_id in all_collections:
                 try:
-                    item = await get_item(collection_id=collection_id, item_id=item_id, request=request, credentials=credentials)
+                    item = await get_item(
+                        collection_id=collection_id,
+                        item_id=item_id,
+                        request=request,
+                        credentials=credentials,
+                    )
                     all_items.append(item)
                 except httpx.HTTPStatusError:  # unable to find item in catalogue
                     pass
 
-        return ItemCollection(**{
-            "type": "FeatureCollection",
-            "features": all_items,
-            "links": [
-                  {
-                    "rel": "self",
-                    "href": f"{base_url}search",
-                    "type": "application/geo+json"
-                  },
-                  {
-                    "rel": "root",
-                    "href": base_url,
-                    "type": "application/json"
-                  }],
-            })
+        return ItemCollection(
+            **{
+                "type": "FeatureCollection",
+                "features": all_items,
+                "links": [
+                    {
+                        "rel": "self",
+                        "href": f"{base_url}search",
+                        "type": "application/geo+json",
+                    },
+                    {"rel": "root", "href": base_url, "type": "application/json"},
+                ],
+            }
+        )
 
     else:
-        if getattr(search_request, "token", False):
-            token_url = FERNET.decrypt(search_request.token).decode("utf-8")
+        if token := search_request.token:
+            token_url = FERNET.decrypt(token).decode("utf-8")
             planet_response = await client.get(token_url)
 
         else:
@@ -464,7 +489,9 @@ async def get_item(
 
     item_path = f"{base_url}collections/{collection_id}/items/{item_id}"
 
-    return map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth, path=item_path)
+    return map_item(
+        planet_item=planet_response.json(), base_url=base_url, auth=auth, path=item_path
+    )
 
 
 @app.get("/collections/{collection_id}/items/{item_id}/thumbnail")
@@ -495,17 +522,24 @@ async def get_item_thumbnail(
 
     planet_response.raise_for_status()
 
-    planet_data = map_item(planet_item=planet_response.json(), base_url=base_url, auth=auth, path=request.url)
+    planet_data = map_item(
+        planet_item=planet_response.json(),
+        base_url=base_url,
+        auth=auth,
+        path=request.url,
+    )
 
-    if planet_data['assets'].get('external_thumbnail'):
-        thumbnail_url = planet_data['assets']['external_thumbnail']['href']
+    if planet_data["assets"].get("external_thumbnail"):
+        thumbnail_url = planet_data["assets"]["external_thumbnail"]["href"]
 
         thumbnail_response = await client.get(thumbnail_url)
         thumbnail_response.raise_for_status()
 
         return Response(content=thumbnail_response.content, media_type="image/png")
 
-    raise HTTPException(status_code=404, detail="External thumbnail link not found in item")
+    raise HTTPException(
+        status_code=404, detail="External thumbnail link not found in item"
+    )
 
 
 async def get_collections(client) -> list:
