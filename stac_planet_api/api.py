@@ -99,14 +99,16 @@ def get_auth(credentials) -> httpx.BasicAuth:
     """Create a httpx auth for the planet apis."""
     # Use the api key if available, otherwise pass through basic credentials from the user.
 
-    api_key = ""
-    if PLANET_API_KEYS is not None:
-        api_key = next(PLANET_API_KEYS)
-        auth = httpx.BasicAuth(username=api_key, password="")
-    elif credentials is not None:
+    if credentials is not None:
+        api_key = credentials.username
         auth = httpx.BasicAuth(
             username=credentials.username, password=credentials.password
         )
+
+    elif PLANET_API_KEYS is not None:
+        api_key = next(PLANET_API_KEYS)
+        auth = httpx.BasicAuth(username=api_key, password="")
+
     else:
         raise fastapi.HTTPException(
             status_code=401, detail="Credentials were not provided."
@@ -115,10 +117,8 @@ def get_auth(credentials) -> httpx.BasicAuth:
     return auth, api_key
 
 
-def get_authenticated_client(credentials) -> httpx.Client:
+def get_authenticated_client(auth) -> httpx.Client:
     """Create a httpx client with correct auth for the planet apis."""
-
-    auth, _ = get_auth(credentials)
 
     return httpx.AsyncClient(
         auth=auth,
@@ -269,22 +269,20 @@ async def post_search(
 
     if token := search_request.token:
         token_parts = FERNET.decrypt(token).decode("utf-8").split("\\")
-        print("TOKEN PARTS", token_parts)
 
         credentials = fastapi.security.HTTPBasicCredentials(
             username=token_parts[1], password=""
         )
 
         auth, api_key = get_auth(credentials)
+        client = get_authenticated_client(auth=auth)
 
-        client = get_authenticated_client(credentials=credentials)
         planet_response = await client.get(token_parts[0])
 
     else:
 
-        client = get_authenticated_client(credentials)
-
         auth, api_key = get_auth(credentials)
+        client = get_authenticated_client(auth)
 
         search_request.limit = (
             MAX_ITEMS if search_request.limit > MAX_ITEMS else search_request.limit
@@ -395,10 +393,9 @@ async def get_item(
     Returns:
         Item: The item.
     """
-    client = get_authenticated_client(credentials)
-    base_url = get_base_url(request)
-
     auth, _ = get_auth(credentials)
+    client = get_authenticated_client(auth)
+    base_url = get_base_url(request)
 
     planet_response = await client.get(
         f"https://api.planet.com/data/v1/item-types/{collection_id}/items/{item_id}",
@@ -430,10 +427,9 @@ async def get_item_thumbnail(
     Returns:
         Response: Thumbnail image
     """
-    client = get_authenticated_client(credentials)
-    base_url = get_base_url(request)
-
     auth, _ = get_auth(credentials)
+    client = get_authenticated_client(auth)
+    base_url = get_base_url(request)
 
     planet_response = await client.get(
         f"https://api.planet.com/data/v1/item-types/{collection_id}/items/{item_id}",
