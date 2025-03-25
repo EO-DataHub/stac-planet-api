@@ -43,7 +43,9 @@ def get_item_links(base_url: str, collection_id: str, item_id: str) -> list:
     ]
 
 
-def get_search_links(base_url: str, next_token: str, prev_token: str) -> list:
+def get_search_links(
+    base_url: str, next_token: str, prev_token: str, api_key: str
+) -> list:
     """
     Get search links
     """
@@ -57,6 +59,9 @@ def get_search_links(base_url: str, next_token: str, prev_token: str) -> list:
     ]
 
     if next_token:
+        next_token = FERNET.encrypt(
+            (f"{next_token}\\{api_key}".encode("utf-8"))
+        ).decode("utf-8")
         links.extend(
             [
                 {
@@ -65,7 +70,7 @@ def get_search_links(base_url: str, next_token: str, prev_token: str) -> list:
                     "method": "GET",
                     "href": urljoin(
                         base_url,
-                        f"search?token={FERNET.encrypt(next_token.encode('utf-8')).decode('utf-8')}",
+                        f"search?token={next_token}",
                     ),
                 },
                 {
@@ -73,16 +78,15 @@ def get_search_links(base_url: str, next_token: str, prev_token: str) -> list:
                     "type": "application/geo+json",
                     "method": "POST",
                     "href": urljoin(base_url, "search"),
-                    "body": {
-                        "token": FERNET.encrypt(next_token.encode("utf-8")).decode(
-                            "utf-8"
-                        )
-                    },
+                    "body": {"token": next_token},
                 },
             ]
         )
 
     if prev_token:
+        prev_token = FERNET.encrypt(
+            (f"{prev_token.encode('utf-8')}\\{api_key.encode('utf-8')}")
+        ).decode("utf-8")
         links.extend(
             [
                 {
@@ -91,7 +95,7 @@ def get_search_links(base_url: str, next_token: str, prev_token: str) -> list:
                     "method": "GET",
                     "href": urljoin(
                         base_url,
-                        f"search?token={FERNET.encrypt(prev_token.encode('utf-8')).decode('utf-8')}",
+                        f"search?token={prev_token}",
                     ),
                 },
                 {
@@ -99,11 +103,7 @@ def get_search_links(base_url: str, next_token: str, prev_token: str) -> list:
                     "type": "application/json",
                     "method": "POST",
                     "href": urljoin(base_url, "search"),
-                    "body": {
-                        "token": FERNET.encrypt(prev_token.encode("utf-8")).decode(
-                            "utf-8"
-                        )
-                    },
+                    "body": {"token": prev_token},
                 },
             ]
         )
@@ -310,7 +310,7 @@ def get_quertables(collection_id: str = ""):
     return queryables
 
 
-def planet_to_stac_response(planet_response: dict, base_url: str, auth):
+def planet_to_stac_response(planet_response: dict, base_url: str, auth, api_key: str):
     stac_items = []
 
     # keeping this for non-concurrency testing purposes
@@ -339,5 +339,6 @@ def planet_to_stac_response(planet_response: dict, base_url: str, auth):
             base_url=base_url,
             next_token=planet_response["_links"].get("_next"),
             prev_token=planet_response["_links"].get("_prev"),
+            api_key=api_key,
         ),
     }
