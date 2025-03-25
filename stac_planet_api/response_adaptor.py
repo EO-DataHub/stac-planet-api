@@ -18,6 +18,7 @@ with open("stac_planet_api/queyables.json", mode="r", encoding="utf-8") as file:
 with open("stac_planet_api/asset_types.json", mode="r", encoding="utf-8") as file:
     ASSET_TYPES: dict = json.load(file)
 
+
 def get_item_links(base_url: str, collection_id: str, item_id: str) -> list:
     """
     Get item links
@@ -57,32 +58,62 @@ def get_search_links(base_url: str, next_token: str, prev_token: str) -> list:
 
     if next_token:
         links.append(
-            {
-                "rel": "next",
-                "type": "application/geo+json",
-                "href": urljoin(
-                    base_url,
-                    f"search?next={FERNET.encrypt(next_token.encode('utf-8')).decode('utf-8')}",
-                ),
-            }
+            [
+                {
+                    "rel": "next",
+                    "type": "application/geo+json",
+                    "method": "GET",
+                    "href": urljoin(
+                        base_url,
+                        f"search?token={FERNET.encrypt(next_token.encode('utf-8')).decode('utf-8')}",
+                    ),
+                },
+                {
+                    "rel": "next",
+                    "type": "application/geo+json",
+                    "method": "POST",
+                    "href": urljoin(base_url, "search"),
+                    "body": {
+                        "token": FERNET.encrypt(next_token.encode("utf-8")).decode(
+                            "utf-8"
+                        )
+                    },
+                },
+            ]
         )
 
     if prev_token:
         links.append(
-            {
-                "rel": "prev",
-                "type": "application/json",
-                "href": urljoin(
-                    base_url,
-                    f"search?prev={FERNET.encrypt(prev_token.encode('utf-8')).decode('utf-8')}",
-                ),
-            }
+            [
+                {
+                    "rel": "prev",
+                    "type": "application/json",
+                    "method": "GET",
+                    "href": urljoin(
+                        base_url,
+                        f"search?token={FERNET.encrypt(prev_token.encode('utf-8')).decode('utf-8')}",
+                    ),
+                },
+                {
+                    "rel": "prev",
+                    "type": "application/json",
+                    "method": "POST",
+                    "href": urljoin(base_url, "search"),
+                    "body": {
+                        "token": FERNET.encrypt(prev_token.encode("utf-8")).decode(
+                            "utf-8"
+                        )
+                    },
+                },
+            ]
         )
 
     return links
 
 
-def get_assets(collection_id: str, thumbnail_href: str, assets_href: str, auth, path:str=None) -> dict:
+def get_assets(
+    collection_id: str, thumbnail_href: str, assets_href: str, auth, path: str = None
+) -> dict:
     """
     Get item assets
     """
@@ -117,7 +148,7 @@ def get_assets(collection_id: str, thumbnail_href: str, assets_href: str, auth, 
         }
 
     if path:
-        output['thumbnail'] = {
+        output["thumbnail"] = {
             "href": f"{path}/thumbnail",
             "roles": ["thumbnail"],
             "type": "image/png",
@@ -229,7 +260,7 @@ def map_item(planet_item, base_url, auth, path=None):
             thumbnail_href=planet_item["_links"]["thumbnail"],
             assets_href=planet_item["_links"]["assets"],
             auth=auth,
-            path=path
+            path=path,
         ),
     }
 
@@ -279,7 +310,7 @@ def get_quertables(collection_id: str = ""):
     return queryables
 
 
-def planet_to_stac_response(planet_response: dict, base_url: str, auth):
+def planet_to_stac_response(planet_response: dict, base_url: str, auth, method: str):
     stac_items = []
 
     # keeping this for non-concurrency testing purposes
