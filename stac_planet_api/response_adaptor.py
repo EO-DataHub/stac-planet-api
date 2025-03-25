@@ -57,7 +57,7 @@ def get_search_links(base_url: str, next_token: str, prev_token: str) -> list:
     ]
 
     if next_token:
-        links.append(
+        links.extend(
             [
                 {
                     "rel": "next",
@@ -83,7 +83,7 @@ def get_search_links(base_url: str, next_token: str, prev_token: str) -> list:
         )
 
     if prev_token:
-        links.append(
+        links.extend(
             [
                 {
                     "rel": "prev",
@@ -310,7 +310,7 @@ def get_quertables(collection_id: str = ""):
     return queryables
 
 
-def planet_to_stac_response(planet_response: dict, base_url: str, auth, method: str):
+def planet_to_stac_response(planet_response: dict, base_url: str, auth):
     stac_items = []
 
     # keeping this for non-concurrency testing purposes
