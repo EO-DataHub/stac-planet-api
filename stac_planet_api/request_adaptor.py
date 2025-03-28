@@ -65,9 +65,7 @@ def comparison_filter(comp_filter):
         }
 
         if comp_filter["op"].lower() == "between":
-            dt_filter = datetime_filter(
-                f"{comp_filter['args'][1]}/{comp_filter['args'][2]}"
-            )
+            dt_filter = datetime_filter(f"{comp_filter['args'][1]}/{comp_filter['args'][2]}")
 
         if comp_filter["op"] == ">":
             dt_filter["config"]["gt"] = comp_filter["args"][1]
@@ -102,6 +100,22 @@ def comparison_filter(comp_filter):
     }
 
 
+def equals_filter(eq_filter):
+    field_name = eq_filter["args"][0]["property"].lstrip("properties.")
+    value = eq_filter["args"][1]
+
+    if eq_filter["op"] == "=":
+        value = [value]
+
+    if field_name == "collection":
+        return {"type": "Collection", "collections": value}
+
+    if isinstance(value[0], str):
+        return {"type": "StringInFilter", "field_name": field_name, "config": value}
+
+    return {"type": "NumberInFilter", "field_name": field_name, "config": value}
+
+
 def geometry_filter(geometry_filter):
     return {
         "type": "GeometryFilter",
@@ -114,18 +128,28 @@ def geometry_filter(geometry_filter):
 
 
 def convert_filter(stac_filter: dict):
+    collections = []
     if stac_filter["op"] in ["and", "or"]:
         config = []
         for sub_filter in stac_filter["args"]:
-            config.append(convert_filter(sub_filter))
+            result = convert_filter(sub_filter)
+
+            if result["type"] == "Collection":
+                collections.extend(result["collections"])
+            else:
+                config.append(convert_filter(sub_filter))
 
         config = [
             c for c in config if c is not None
         ]  # if there are any unrecognised filters then ignore them instead of erroring
-        return {"type": f"{stac_filter['op'].title()}Filter", "config": config}
+
+        return {"type": f"{stac_filter['op'].title()}Filter", "collections": collections, "config": config}
 
     elif stac_filter["op"].lower() in ["between", "<", ">", "<=", ">="]:
         return comparison_filter(stac_filter)
+
+    elif stac_filter["op"].lower() in ["in", "="]:
+        return equals_filter(stac_filter)
 
     elif stac_filter["op"] in ["s_intersects"]:
         return geometry_filter(stac_filter)
@@ -136,11 +160,15 @@ def convert_filter(stac_filter: dict):
 
 def build_search_filter(stac_request):
     config = []
+    collections = []
     if datetime_str := getattr(stac_request, "datetime", None):
         config.append(datetime_filter(datetime_str))
     # Multiple field filters, e.g.: "range", "string", "numberin
+
     if stac_filter := getattr(stac_request, "filter", None):
-        config.append(convert_filter(stac_filter))
+        planet_filter = convert_filter(stac_filter)
+        collections.extend(planet_filter.pop("collections", []))
+        config.append(planet_filter)
 
     if intersects := getattr(stac_request, "intersects", None):
         config.append(
@@ -161,21 +189,18 @@ def build_search_filter(stac_request):
         )
 
     # Multiple logical filters, e.g.: "and", "or", "not"
-    return {"type": "AndFilter", "config": config}
+    return {"type": "AndFilter", "collections": collections, "config": config}
 
 
 def stac_to_planet_request(stac_request: dict) -> tuple[dict, dict]:
     planet_parameters = {}
-    planet_request = {"filter": build_search_filter(stac_request)}
+    search_filter = build_search_filter(stac_request)
+    planet_request = {"filter": search_filter}
 
-    planet_request["item_types"] = (
-        collections
-        if (collections := getattr(stac_request, "collections"))
-        else settings.item_types
-    )
+    collections = stac_request.collections if getattr(stac_request, "collections") else []
+    collections.extend(search_filter.pop("collections", []))
 
-    if not planet_request["item_types"]:
-        planet_request["item_types"] = settings.item_types
+    planet_request["item_types"] = collections if collections else settings.item_types
 
     if limit := getattr(stac_request, "limit", None):
         planet_parameters["_page_size"] = limit
