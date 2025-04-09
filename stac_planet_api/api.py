@@ -12,7 +12,7 @@ import httpx
 import orjson
 from cryptography.fernet import Fernet
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pygeofilter.backends.cql2_json import to_cql2
 from pygeofilter.parsers.cql2_text import parse as parse_cql2_text
@@ -463,3 +463,14 @@ async def get_collections(client) -> list:
     planet_response = await client.get("https://api.planet.com/data/v1/item-types")
 
     return [collection["id"] for collection in planet_response.json()["item_types"]]
+
+
+
+@app.get("/collections/{collection}/thumbnail")
+async def get_collection_thumbnail(collection: str):
+    """Endpoint to get the thumbnail of an Airbus collection"""
+    # Thumbnail is a local file, return it directly
+    thumbnail_path = f"stac_planet_api/thumbnails/{collection}.jpg"
+    if not os.path.exists(thumbnail_path):
+        raise HTTPException(status_code=404, detail="Thumbnail not found")
+    return FileResponse(thumbnail_path)
