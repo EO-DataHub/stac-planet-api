@@ -43,9 +43,7 @@ def get_item_links(base_url: str, collection_id: str, item_id: str) -> list:
     ]
 
 
-def get_search_links(
-    base_url: str, next_token: str, prev_token: str, api_key: str
-) -> list:
+def get_search_links(base_url: str, next_token: str, prev_token: str, api_key: str) -> list:
     """
     Get search links
     """
@@ -59,9 +57,7 @@ def get_search_links(
     ]
 
     if next_token:
-        next_token = FERNET.encrypt(
-            (f"{next_token}\\{api_key}".encode("utf-8"))
-        ).decode("utf-8")
+        next_token = FERNET.encrypt((f"{next_token}\\{api_key}".encode("utf-8"))).decode("utf-8")
         links.extend(
             [
                 {
@@ -84,9 +80,7 @@ def get_search_links(
         )
 
     if prev_token:
-        prev_token = FERNET.encrypt(
-            (f"{prev_token.encode('utf-8')}\\{api_key.encode('utf-8')}")
-        ).decode("utf-8")
+        prev_token = FERNET.encrypt((f"{prev_token.encode('utf-8')}\\{api_key.encode('utf-8')}")).decode("utf-8")
         links.extend(
             [
                 {
@@ -111,9 +105,7 @@ def get_search_links(
     return links
 
 
-def get_assets(
-    collection_id: str, thumbnail_href: str, assets_href: str, auth, path: str = None
-) -> dict:
+def get_assets(collection_id: str, thumbnail_href: str, assets_href: str, auth, path: str = None) -> dict:
     """
     Get item assets
     """
@@ -204,10 +196,7 @@ def multi(coordinate_type: str, coordinates: list) -> list:
     Get polygon bbox
     """
 
-    bboxes = [
-        get_bbox(coordinate_type.lstrip("Multi"), coordinate)
-        for coordinate in coordinates
-    ]
+    bboxes = [get_bbox(coordinate_type.lstrip("Multi"), coordinate) for coordinate in coordinates]
     return [
         min(bbox[0] for bbox in bboxes),
         max(bbox[2] for bbox in bboxes),
@@ -235,9 +224,9 @@ def get_bbox(coordinate_type: str, coordinates: list) -> list:
     return None
 
 
-def map_item(planet_item, base_url, auth, path=None):
+def map_item(order, planet_item, base_url, auth, path=None):
 
-    return {
+    return order, {
         "type": "Feature",
         "stac_version": "1.0.0",
         "stac_extensions": [],
@@ -248,8 +237,7 @@ def map_item(planet_item, base_url, auth, path=None):
             coordinate_type=planet_item["geometry"]["type"],
             coordinates=planet_item["geometry"]["coordinates"],
         ),
-        "properties": planet_item["properties"]
-        | {"datetime": planet_item["properties"]["acquired"]},
+        "properties": planet_item["properties"] | {"datetime": planet_item["properties"]["acquired"]},
         "links": get_item_links(
             base_url=base_url,
             collection_id=planet_item["properties"]["item_type"],
@@ -311,30 +299,26 @@ def get_quertables(collection_id: str = ""):
 
 
 def planet_to_stac_response(planet_response: dict, base_url: str, auth, api_key: str):
-    stac_items = []
-
-    # keeping this for non-concurrency testing purposes
-    # for planet_item in planet_response["features"]:
-    #     stac_items.append(map_item(planet_item, base_url, auth))
+    stac_items = {}
 
     with concurrent.futures.ThreadPoolExecutor() as e:
         fut = []
-        for planet_item in planet_response["features"]:
+        for order, planet_item in enumerate(planet_response["features"]):
             collection_id = planet_item["properties"]["item_type"]
             item_id = planet_item["id"]
             item_path = f"{base_url}collections/{collection_id}/items/{item_id}"
-            fut.append(e.submit(map_item, planet_item, base_url, auth, item_path))
+            fut.append(e.submit(map_item, order, planet_item, base_url, auth, item_path))
 
         for r in concurrent.futures.as_completed(fut):
             try:
-                data = r.result()
-                stac_items.append(data)
+                order, data = r.result()
+                stac_items[order] = data
             except json.decoder.JSONDecodeError as e:
                 pass
 
     return {
         "type": "FeatureCollection",
-        "features": stac_items,
+        "features": [stac_items[k] for k in sorted(stac_items)],
         "links": get_search_links(
             base_url=base_url,
             next_token=planet_response["_links"].get("_next"),
