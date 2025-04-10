@@ -301,10 +301,6 @@ def get_quertables(collection_id: str = ""):
 def planet_to_stac_response(planet_response: dict, base_url: str, auth, api_key: str):
     stac_items = []
 
-    # keeping this for non-concurrency testing purposes
-    # for planet_item in planet_response["features"]:
-    #     stac_items.append(map_item(planet_item, base_url, auth))
-
     for planet_item in planet_response["features"]:
         collection_id = planet_item["properties"]["item_type"]
         item_id = planet_item["id"]
