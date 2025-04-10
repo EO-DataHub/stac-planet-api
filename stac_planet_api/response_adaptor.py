@@ -309,8 +309,8 @@ def planet_to_stac_response(planet_response: dict, base_url: str, auth, api_key:
         collection_id = planet_item["properties"]["item_type"]
         item_id = planet_item["id"]
         item_path = f"{base_url}collections/{collection_id}/items/{item_id}"
-        data = map_item(planet_item, base_url, auth, item_path)
         try:
+            data = map_item(planet_item, base_url, auth, item_path)
             stac_items.append(data)
         except json.decoder.JSONDecodeError as e:
             pass
