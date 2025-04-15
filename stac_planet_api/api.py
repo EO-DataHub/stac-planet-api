@@ -405,9 +405,10 @@ async def get_item(
 
     item_path = f"{base_url}collections/{collection_id}/items/{item_id}"
 
-    return map_item(
-        planet_item=planet_response.json(), base_url=base_url, auth=auth, path=item_path
+    _, planet_data = map_item(
+        order=0, planet_item=planet_response.json(), base_url=base_url, auth=auth, path=item_path
     )
+    return planet_data
 
 
 @app.get("/collections/{collection_id}/items/{item_id}/thumbnail")
@@ -437,7 +438,8 @@ async def get_item_thumbnail(
 
     planet_response.raise_for_status()
 
-    planet_data = map_item(
+    _, planet_data = map_item(
+        order=0,
         planet_item=planet_response.json(),
         base_url=base_url,
         auth=auth,
