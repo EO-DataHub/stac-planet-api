@@ -1,6 +1,8 @@
 import logging
+from typing import Any
 
 import fastapi
+from stac_fastapi.types.search import BaseSearchPostRequest
 
 from stac_planet_api.config import Settings
 
@@ -14,7 +16,7 @@ COMPARISONS = {
 }
 
 
-def bbox_to_intersects(bbox):
+def bbox_to_intersects(bbox: list[float]) -> list[list[list[float]]]:
     latitudes = bbox[0::2]
     longitudes = bbox[1::2]
 
@@ -28,19 +30,19 @@ def bbox_to_intersects(bbox):
     return [intersects]
 
 
-def get_datetime(datetime_str: str) -> str:
+def get_datetime(datetime_str: str) -> str | None:
     if datetime_str == "..":
         return None
 
     return datetime_str
 
 
-def datetime_filter(date_filter: str):
+def datetime_filter(date_filter: str) -> dict[str, Any]:
     start_date, end_date = date_filter.split("/")
     start_date = get_datetime(start_date)
     end_date = get_datetime(end_date)
 
-    dt_filter = {
+    dt_filter: dict[str, Any] = {
         "type": "DateRangeFilter",
         "field_name": "acquired",
         "config": {},
@@ -54,11 +56,11 @@ def datetime_filter(date_filter: str):
     return dt_filter
 
 
-def comparison_filter(comp_filter):
-    field_name = comp_filter["args"][0]["property"].lstrip("properties.")
+def comparison_filter(comp_filter: dict[str, Any]) -> dict[str, Any]:
+    field_name = comp_filter["args"][0]["property"].removeprefix("properties.")
 
     if field_name == "datetime":
-        dt_filter = {
+        dt_filter: dict[str, Any] = {
             "type": "DateRangeFilter",
             "field_name": "acquired",
             "config": {},
@@ -100,8 +102,8 @@ def comparison_filter(comp_filter):
     }
 
 
-def equals_filter(eq_filter):
-    field_name = eq_filter["args"][0]["property"].lstrip("properties.")
+def equals_filter(eq_filter: dict[str, Any]) -> dict[str, Any]:
+    field_name = eq_filter["args"][0]["property"].removeprefix("properties.")
     value = eq_filter["args"][1]
 
     if eq_filter["op"] == "=":
@@ -116,24 +118,26 @@ def equals_filter(eq_filter):
     return {"type": "NumberInFilter", "field_name": field_name, "config": value}
 
 
-def geometry_filter(geometry_filter):
+def geometry_filter(geo_filter: dict[str, Any]) -> dict[str, Any]:
     return {
         "type": "GeometryFilter",
-        "field_name": geometry_filter["args"][0]["property"].lstrip("properties."),
+        "field_name": geo_filter["args"][0]["property"].removeprefix("properties."),
         "config": {
             "type": "Polygon",
-            "coordinates": geometry_filter["args"][1]["coordinates"],
+            "coordinates": geo_filter["args"][1]["coordinates"],
         },
     }
 
 
-def convert_filter(stac_filter: dict):
-    collections = []
+def convert_filter(stac_filter: dict[str, Any]) -> dict[str, Any] | None:
+    collections: list[str] = []
     if stac_filter["op"] in ["and", "or"]:
         config = []
         for sub_filter in stac_filter["args"]:
             result = convert_filter(sub_filter)
 
+            if result is None:
+                continue
             if result["type"] == "Collection":
                 collections.extend(result["collections"])
             else:
@@ -151,24 +155,26 @@ def convert_filter(stac_filter: dict):
     elif stac_filter["op"].lower() in ["in", "="]:
         return equals_filter(stac_filter)
 
-    elif stac_filter["op"] in ["s_intersects"]:
+    elif stac_filter["op"] == "s_intersects":
         return geometry_filter(stac_filter)
 
     else:
-        logging.info(f"Filter {stac_filter['op']} not recognised")
+        logging.info("Filter %s not recognised", stac_filter["op"])
+        return None
 
 
-def build_search_filter(stac_request):
+def build_search_filter(stac_request: BaseSearchPostRequest) -> dict[str, Any]:
     config = []
-    collections = []
+    collections: list[str] = []
     if datetime_str := getattr(stac_request, "datetime", None):
         config.append(datetime_filter(datetime_str))
     # Multiple field filters, e.g.: "range", "string", "numberin
 
     if stac_filter := getattr(stac_request, "filter", None):
         planet_filter = convert_filter(stac_filter)
-        collections.extend(planet_filter.pop("collections", []))
-        config.append(planet_filter)
+        if planet_filter is not None:
+            collections.extend(planet_filter.pop("collections", []))
+            config.append(planet_filter)
 
     if intersects := getattr(stac_request, "intersects", None):
         config.append(
@@ -192,15 +198,15 @@ def build_search_filter(stac_request):
     return {"type": "AndFilter", "collections": collections, "config": config}
 
 
-def stac_to_planet_request(stac_request: dict) -> tuple[dict, dict]:
-    planet_parameters = {}
+def stac_to_planet_request(stac_request: BaseSearchPostRequest) -> tuple[dict[str, Any], dict[str, Any]]:
+    planet_parameters: dict[str, Any] = {}
     search_filter = build_search_filter(stac_request)
-    planet_request = {"filter": search_filter}
+    planet_request: dict[str, Any] = {"filter": search_filter}
 
-    collections = stac_request.collections if getattr(stac_request, "collections") else []
+    collections = stac_request.collections or []
     collections.extend(search_filter.pop("collections", []))
 
-    planet_request["item_types"] = collections if collections else settings.item_types
+    planet_request["item_types"] = collections or settings.item_types
 
     if limit := getattr(stac_request, "limit", None):
         planet_parameters["_page_size"] = limit

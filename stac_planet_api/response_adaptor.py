@@ -1,6 +1,7 @@
 import concurrent.futures
 import json
 from json import JSONDecodeError
+from typing import Any
 from urllib.parse import urljoin
 
 import httpx
@@ -12,14 +13,14 @@ settings = Settings()
 
 FERNET = Fernet(settings.fernet_key)
 
-with open("stac_planet_api/queyables.json", mode="r", encoding="utf-8") as file:
+with open("stac_planet_api/queyables.json", encoding="utf-8") as file:
     QUERYABLES: dict = json.load(file)
 
-with open("stac_planet_api/asset_types.json", mode="r", encoding="utf-8") as file:
+with open("stac_planet_api/asset_types.json", encoding="utf-8") as file:
     ASSET_TYPES: dict = json.load(file)
 
 
-def get_item_links(base_url: str, collection_id: str, item_id: str) -> list:
+def get_item_links(base_url: str, collection_id: str, item_id: str) -> list[dict[str, str]]:
     """
     Get item links
     """
@@ -43,11 +44,13 @@ def get_item_links(base_url: str, collection_id: str, item_id: str) -> list:
     ]
 
 
-def get_search_links(base_url: str, next_token: str, prev_token: str, api_key: str) -> list:
+def get_search_links(
+    base_url: str, next_token: str | None, prev_token: str | None, api_key: str
+) -> list[dict[str, Any]]:
     """
     Get search links
     """
-    links = [
+    links: list[dict[str, Any]] = [
         {
             "rel": "self",
             "type": "application/geo+json",
@@ -57,7 +60,7 @@ def get_search_links(base_url: str, next_token: str, prev_token: str, api_key: s
     ]
 
     if next_token:
-        next_token = FERNET.encrypt((f"{next_token}\\{api_key}".encode("utf-8"))).decode("utf-8")
+        next_token = FERNET.encrypt(f"{next_token}\\{api_key}".encode()).decode("utf-8")
         links.extend(
             [
                 {
@@ -80,7 +83,7 @@ def get_search_links(base_url: str, next_token: str, prev_token: str, api_key: s
         )
 
     if prev_token:
-        prev_token = FERNET.encrypt((f"{prev_token.encode('utf-8')}\\{api_key.encode('utf-8')}")).decode("utf-8")
+        prev_token = FERNET.encrypt(f"{prev_token}\\{api_key}".encode()).decode("utf-8")
         links.extend(
             [
                 {
@@ -105,11 +108,17 @@ def get_search_links(base_url: str, next_token: str, prev_token: str, api_key: s
     return links
 
 
-def get_assets(collection_id: str, thumbnail_href: str, assets_href: str, auth, path: str = None) -> dict:
+def get_assets(
+    collection_id: str,
+    thumbnail_href: str,
+    assets_href: str,
+    auth: httpx.BasicAuth,
+    path: str | None = None,
+) -> dict[str, Any]:
     """
     Get item assets
     """
-    output = {
+    output: dict[str, Any] = {
         "external_thumbnail": {
             "href": thumbnail_href,
             "roles": ["external_thumbnail"],
@@ -123,6 +132,7 @@ def get_assets(collection_id: str, thumbnail_href: str, assets_href: str, auth, 
         timeout=180,
     )
 
+    assets: dict = {}
     count = 0
     while count < 10:
         count += 1
@@ -149,7 +159,7 @@ def get_assets(collection_id: str, thumbnail_href: str, assets_href: str, auth, 
     return output
 
 
-def point(coordinates: list) -> list:
+def point(coordinates: list[float]) -> list[float]:
     """
     Get point bbox
     """
@@ -161,14 +171,13 @@ def point(coordinates: list) -> list:
     ]
 
 
-def line(coordinates: list) -> list:
+def line(coordinates: list[list[float]]) -> list[float]:
     """
     Get line bbox
     """
     bbox = point(coordinates[0])
 
     for coordinate in coordinates[1:]:
-
         if coordinate[0] < bbox[0]:
             bbox[0] = coordinate[0]
 
@@ -184,19 +193,20 @@ def line(coordinates: list) -> list:
     return bbox
 
 
-def polygon(coordinates: list) -> list:
+def polygon(coordinates: list[Any]) -> list[float]:
     """
     Get polygon bbox
     """
     return line(coordinates[0][1:])
 
 
-def multi(coordinate_type: str, coordinates: list) -> list:
+def multi(coordinate_type: str, coordinates: list[Any]) -> list[float]:
     """
     Get polygon bbox
     """
 
-    bboxes = [get_bbox(coordinate_type.lstrip("Multi"), coordinate) for coordinate in coordinates]
+    bboxes_or_none = [get_bbox(coordinate_type.removeprefix("Multi"), coordinate) for coordinate in coordinates]
+    bboxes = [bbox for bbox in bboxes_or_none if bbox is not None]
     return [
         min(bbox[0] for bbox in bboxes),
         max(bbox[2] for bbox in bboxes),
@@ -205,7 +215,7 @@ def multi(coordinate_type: str, coordinates: list) -> list:
     ]
 
 
-def get_bbox(coordinate_type: str, coordinates: list) -> list:
+def get_bbox(coordinate_type: str, coordinates: list[Any]) -> list[float] | None:
     """
     Get bbox from geometry
     """
@@ -224,8 +234,13 @@ def get_bbox(coordinate_type: str, coordinates: list) -> list:
     return None
 
 
-def map_item(order, planet_item, base_url, auth, path=None):
-
+def map_item(
+    order: int,
+    planet_item: dict[str, Any],
+    base_url: str,
+    auth: httpx.BasicAuth,
+    path: str | None = None,
+) -> tuple[int, dict[str, Any]]:
     return order, {
         "type": "Feature",
         "stac_version": "1.0.0",
@@ -253,9 +268,8 @@ def map_item(order, planet_item, base_url, auth, path=None):
     }
 
 
-def get_quertables(collection_id: str = ""):
-
-    queryables = {
+def get_quertables(collection_id: str = "") -> dict[str, Any]:
+    queryables: dict[str, Any] = {
         "$schema": "https://json-schema.org/draft/2019-09/schema",
         "$id": "https://stac-api.example.com/queryables",
         "type": "object",
@@ -298,22 +312,27 @@ def get_quertables(collection_id: str = ""):
     return queryables
 
 
-def planet_to_stac_response(planet_response: dict, base_url: str, auth, api_key: str):
-    stac_items = {}
+def planet_to_stac_response(
+    planet_response: dict[str, Any],
+    base_url: str,
+    auth: httpx.BasicAuth,
+    api_key: str,
+) -> dict[str, Any]:
+    stac_items: dict[int, dict[str, Any]] = {}
 
-    with concurrent.futures.ThreadPoolExecutor() as e:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         fut = []
         for order, planet_item in enumerate(planet_response["features"]):
             collection_id = planet_item["properties"]["item_type"]
             item_id = planet_item["id"]
             item_path = f"{base_url}collections/{collection_id}/items/{item_id}"
-            fut.append(e.submit(map_item, order, planet_item, base_url, auth, item_path))
+            fut.append(executor.submit(map_item, order, planet_item, base_url, auth, item_path))
 
         for r in concurrent.futures.as_completed(fut):
             try:
                 order, data = r.result()
                 stac_items[order] = data
-            except json.decoder.JSONDecodeError as e:
+            except json.decoder.JSONDecodeError:
                 pass
 
     return {
