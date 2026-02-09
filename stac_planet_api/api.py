@@ -3,7 +3,8 @@ import json
 import logging
 import os
 import re
-from typing import Annotated, Optional
+from collections.abc import Callable
+from typing import Annotated, Any, cast
 from urllib.parse import unquote_plus
 
 import fastapi
@@ -14,6 +15,7 @@ from cryptography.fernet import Fernet
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from pygeofilter import ast as pygeofilter_ast
 from pygeofilter.backends.cql2_json import to_cql2
 from pygeofilter.parsers.cql2_text import parse as parse_cql2_text
 from stac_fastapi.api.models import create_post_request_model
@@ -25,7 +27,7 @@ from stac_fastapi.extensions.core import (
     TokenPaginationExtension,
 )
 from stac_fastapi.types.search import BaseSearchPostRequest
-from stac_pydantic import Item, ItemCollection
+from stac_pydantic.item_collection import ItemCollection
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from stac_planet_api.config import Settings
@@ -48,7 +50,9 @@ extensions = [
     FilterExtension(),
 ]
 
-POST_REQUEST_MODEL = create_post_request_model(extensions)
+POST_REQUEST_MODEL: type[BaseSearchPostRequest] = cast(
+    type[BaseSearchPostRequest], create_post_request_model(extensions)
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +61,8 @@ default_base_url = os.environ.get("BASE_URL")
 
 # Load all the planet api keys from the environment and setup a cycle so we can always use the next one.
 try:
-    PLANET_API_KEYS = itertools.cycle(
-        os.environ.get(
-            "PLANET_API_KEYS",
-        ).split(":")
-    )
+    planet_api_keys_env = os.environ.get("PLANET_API_KEYS")
+    PLANET_API_KEYS = itertools.cycle(planet_api_keys_env.split(":")) if planet_api_keys_env else None
 except NameError:
     PLANET_API_KEYS = None
 
@@ -69,11 +70,9 @@ app = FastAPI(root_path=root_path)
 
 
 class HeaderMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         response = await call_next(request)
-        response.headers["Cache-Control"] = (
-            f"max-age={os.environ.get('CACHE_LENGTH', '3600')}"
-        )
+        response.headers["Cache-Control"] = f"max-age={os.environ.get('CACHE_LENGTH', '3600')}"
         return response
 
 
@@ -84,7 +83,7 @@ security = HTTPBasic(auto_error=False)
 MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "10"))
 
 
-def get_base_url(request):
+def get_base_url(request: Request) -> str:
     global default_base_url
 
     if default_base_url:
@@ -95,29 +94,25 @@ def get_base_url(request):
         return str(request.base_url)
 
 
-def get_auth(credentials) -> httpx.BasicAuth:
+def get_auth(credentials: HTTPBasicCredentials | None) -> tuple[httpx.BasicAuth, str]:
     """Create a httpx auth for the planet apis."""
     # Use the api key if available, otherwise pass through basic credentials from the user.
 
     if credentials is not None:
         api_key = credentials.username
-        auth = httpx.BasicAuth(
-            username=credentials.username, password=credentials.password
-        )
+        auth = httpx.BasicAuth(username=credentials.username, password=credentials.password)
 
     elif PLANET_API_KEYS is not None:
         api_key = next(PLANET_API_KEYS)
         auth = httpx.BasicAuth(username=api_key, password="")
 
     else:
-        raise fastapi.HTTPException(
-            status_code=401, detail="Credentials were not provided."
-        )
+        raise fastapi.HTTPException(status_code=401, detail="Credentials were not provided.")
 
     return auth, api_key
 
 
-def get_authenticated_client(auth) -> httpx.Client:
+def get_authenticated_client(auth: httpx.BasicAuth) -> httpx.AsyncClient:
     """Create a httpx client with correct auth for the planet apis."""
 
     return httpx.AsyncClient(
@@ -157,22 +152,20 @@ async def get_collection_queryables(
 @app.get("/search")
 async def get_search(
     request: Request,
-    credentials: Annotated[
-        fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)
-    ],
-    collections: Optional[str] = None,
-    ids: Optional[str] = None,
-    bbox: Optional[str] = None,
-    datetime: Optional[str] = None,
-    limit: Optional[int] = 10,
-    query: Optional[str] = None,
-    token: Optional[str] = None,
-    fields: Optional[str] = None,
-    sortby: Optional[str] = None,
-    intersects: Optional[str] = None,
-    filter: Optional[str] = None,
-    filter_lang: Optional[str] = None,
-) -> ItemCollection:
+    credentials: Annotated[fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)],
+    collections: str | None = None,
+    ids: str | None = None,
+    bbox: str | None = None,
+    datetime: str | None = None,
+    limit: int | None = 10,
+    query: str | None = None,
+    token: str | None = None,
+    fields: str | None = None,
+    sortby: str | None = None,
+    intersects: str | None = None,
+    filter: str | None = None,
+    filter_lang: str | None = None,
+) -> ItemCollection | dict[str, Any]:
     """GET Search planet items.
 
     Args:
@@ -230,7 +223,7 @@ async def get_search(
         search_request["filter"] = orjson.loads(
             unquote_plus(filter)
             if filter_lang == "cql2-json"
-            else to_cql2(parse_cql2_text(filter))
+            else to_cql2(cast(pygeofilter_ast.Node, parse_cql2_text(filter)))
         )
 
     if fields:
@@ -251,28 +244,24 @@ async def get_search(
 
 @app.post("/search")
 async def post_search(
-    search_request: POST_REQUEST_MODEL,
+    search_request: BaseSearchPostRequest,
     request: Request,
-    credentials: Annotated[
-        fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)
-    ],
-) -> ItemCollection:
+    credentials: Annotated[fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)],
+) -> ItemCollection | dict[str, Any]:
     """Search planet items.
 
     Args:
-        search request (BaseSearchPostRequest): The search request.
+        search request: The search request.
 
     Returns:
         ItemCollection: The items.
     """
     base_url = get_base_url(request)
 
-    if token := search_request.token:
+    if token := getattr(search_request, "token", None):
         token_parts = FERNET.decrypt(token).decode("utf-8").split("\\")
 
-        credentials = fastapi.security.HTTPBasicCredentials(
-            username=token_parts[1], password=""
-        )
+        credentials = fastapi.security.HTTPBasicCredentials(username=token_parts[1], password="")
 
         auth, api_key = get_auth(credentials)
         client = get_authenticated_client(auth=auth)
@@ -280,21 +269,13 @@ async def post_search(
         planet_response = await client.get(token_parts[0])
 
     else:
-
         auth, api_key = get_auth(credentials)
         client = get_authenticated_client(auth)
 
-        search_request.limit = (
-            MAX_ITEMS if search_request.limit > MAX_ITEMS else search_request.limit
-        )
+        search_request.limit = min(search_request.limit or MAX_ITEMS, MAX_ITEMS)
 
         if search_request.ids:
-
-            all_collections = (
-                search_request.collections
-                if search_request.collections
-                else await get_collections(client)
-            )
+            all_collections = search_request.collections or await get_collections(client)
 
             all_items = []
 
@@ -326,9 +307,7 @@ async def post_search(
                 }
             )
 
-        planet_parameters, planet_request = stac_to_planet_request(
-            stac_request=search_request
-        )
+        planet_parameters, planet_request = stac_to_planet_request(stac_request=search_request)
 
         planet_response = await client.post(
             "https://api.planet.com/data/v1/quick-search",
@@ -352,7 +331,7 @@ async def get_item_collection(
     collection_id: str,
     request: Request,
     credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-) -> ItemCollection:
+) -> ItemCollection | dict[str, Any]:
     """GET Get planet items for collection.
 
     Args:
@@ -366,7 +345,7 @@ async def get_item_collection(
     search_request = {
         "collections": [collection_id],
         "limit": int(query_params.get("limit", MAX_ITEMS)),
-        "token": query_params.get("token", None),
+        "token": query_params.get("token"),
     }
 
     return await post_search(
@@ -383,7 +362,7 @@ async def get_item(
     item_id: str,
     request: Request,
     credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-) -> Item:
+) -> dict[str, Any]:
     """Get planet item.
 
     Args:
@@ -391,7 +370,7 @@ async def get_item(
         item_id (str): The identifier of the item.
 
     Returns:
-        Item: The item.
+        dict: The item.
     """
     auth, _ = get_auth(credentials)
     client = get_authenticated_client(auth)
@@ -443,7 +422,7 @@ async def get_item_thumbnail(
         planet_item=planet_response.json(),
         base_url=base_url,
         auth=auth,
-        path=request.url,
+        path=str(request.url),
     )
 
     if planet_data["assets"].get("external_thumbnail"):
@@ -454,12 +433,10 @@ async def get_item_thumbnail(
 
         return Response(content=thumbnail_response.content, media_type="image/png")
 
-    raise HTTPException(
-        status_code=404, detail="External thumbnail link not found in item"
-    )
+    raise HTTPException(status_code=404, detail="External thumbnail link not found in item")
 
 
-async def get_collections(client) -> list:
+async def get_collections(client: httpx.AsyncClient) -> list[str]:
     """Get collections from Planet"""
 
     planet_response = await client.get("https://api.planet.com/data/v1/item-types")
@@ -467,9 +444,8 @@ async def get_collections(client) -> list:
     return [collection["id"] for collection in planet_response.json()["item_types"]]
 
 
-
 @app.get("/collections/{collection}/thumbnail")
-async def get_collection_thumbnail(collection: str):
+async def get_collection_thumbnail(collection: str) -> FileResponse:
     """Endpoint to get the thumbnail of an Airbus collection"""
     # Thumbnail is a local file, return it directly
     thumbnail_path = f"stac_planet_api/thumbnails/{collection}.jpg"
