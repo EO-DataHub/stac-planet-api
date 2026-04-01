@@ -244,7 +244,7 @@ async def get_search(
 
 @app.post("/search")
 async def post_search(
-    search_request: BaseSearchPostRequest,
+    search_request: POST_REQUEST_MODEL,  # pyright: ignore[reportInvalidTypeForm]
     request: Request,
     credentials: Annotated[fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)],
 ) -> ItemCollection | dict[str, Any]:
@@ -258,7 +258,7 @@ async def post_search(
     """
     base_url = get_base_url(request)
 
-    if token := getattr(search_request, "token", None):
+    if token := search_request.token:
         token_parts = FERNET.decrypt(token).decode("utf-8").split("\\")
 
         credentials = fastapi.security.HTTPBasicCredentials(username=token_parts[1], password="")
