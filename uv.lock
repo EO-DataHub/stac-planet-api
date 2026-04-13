@@ -223,22 +223,6 @@ wheels = [
 ]
 
 [[package]]
-name = "fastapi-slim"
-version = "0.128.5"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "annotated-doc" },
-    { name = "pydantic" },
-    { name = "starlette" },
-    { name = "typing-extensions" },
-    { name = "typing-inspection" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b9/a0/da33b1981428d678d148dd8580b3111ad5b19496796e80a13e947fab8961/fastapi_slim-0.128.5.tar.gz", hash = "sha256:8ff38b5229f830cbf1cf8f91ed379bc4de23f4e9381da2d21aea58c70f79ca8a", size = 374868, upload-time = "2026-02-08T10:22:06.713Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/b5/282bfb38ccd4cb5530b5f7a79ab2f576ebbc72d9e69e7e87b00f55b3b1a5/fastapi_slim-0.128.5-py3-none-any.whl", hash = "sha256:107927348db4dfd383f3fac10e00204ad1a014f8d296ab534d7095903c621b1f", size = 103728, upload-time = "2026-02-08T10:22:05.668Z" },
-]
-
-[[package]]
 name = "fastjsonschema"
 version = "2.21.2"
 source = { registry = "https://pypi.org/simple" }
@@ -740,18 +724,18 @@ wheels = [
 
 [[package]]
 name = "stac-fastapi-types"
-version = "3.0.0b2"
+version = "3.0.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
-    { name = "fastapi-slim" },
+    { name = "fastapi" },
     { name = "iso8601" },
     { name = "pydantic-settings" },
     { name = "stac-pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0c/f5/65bdd7bb74d30e18408dc48d20926ee1817494df832efcd6cfe6fd7c2694/stac_fastapi_types-3.0.0b2.tar.gz", hash = "sha256:7e05b520cf1696b5e2e446236593570d2b627bfaa2a836f5fbc263d0dc188874", size = 12124, upload-time = "2024-07-09T16:27:18.344Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/5e/72e29f3b486cb1f11aeffc88178237a74c1e156dbaaf33d66ed518e3ea51/stac_fastapi_types-3.0.5.tar.gz", hash = "sha256:b680feee9ca4811409a7933d336f37b9f756d8553fe325dddc730dd5dff2b5b8", size = 13191, upload-time = "2025-01-10T09:30:06.735Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/de/c175fa0517d196c3ba541e353ba5452235b0cc66bd8c69c3744fdda498c3/stac_fastapi.types-3.0.0b2-py3-none-any.whl", hash = "sha256:c824d71ea750d79c1fa9d9c713b03cc6984a4ddfe15fe87b891f9c6c762964b1", size = 13201, upload-time = "2024-07-09T16:27:16.952Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/dc/63ae8eb86f1784203c708132cf3a84c6e8c6a39007337172d9cee858d66f/stac_fastapi.types-3.0.5-py3-none-any.whl", hash = "sha256:51ed9a3e6491a979bd913dc34d4ff2f5dbc9180f04eeca10f798f2a8cf0bbacf", size = 14082, upload-time = "2025-01-10T09:29:57.935Z" },
 ]
 
 [[package]]
@@ -794,7 +778,7 @@ requires-dist = [
     { name = "pygeofilter", specifier = ">=0.2.4" },
     { name = "stac-fastapi-api", specifier = "==3.0.0b2" },
     { name = "stac-fastapi-extensions", specifier = "==3.0.0b2" },
-    { name = "stac-fastapi-types", specifier = "==3.0.0b2" },
+    { name = "stac-fastapi-types", specifier = "==3.0.5" },
     { name = "stac-pydantic", specifier = ">=3.1.1" },
     { name = "uvicorn", specifier = ">=0.30.0" },
 ]
