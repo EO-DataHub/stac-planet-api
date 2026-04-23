@@ -2,9 +2,9 @@ import logging
 from typing import Any
 
 import fastapi
-from stac_fastapi.types.search import BaseSearchPostRequest
 
 from stac_planet_api.config import Settings
+from stac_planet_api.search_model import POST_REQUEST_MODEL
 
 settings = Settings()
 
@@ -163,7 +163,7 @@ def convert_filter(stac_filter: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
 
-def build_search_filter(stac_request: BaseSearchPostRequest) -> dict[str, Any]:
+def build_search_filter(stac_request: POST_REQUEST_MODEL) -> dict[str, Any]:  # pyright: ignore[reportInvalidTypeForm]
     config = []
     collections: list[str] = []
     if datetime_str := getattr(stac_request, "datetime", None):
@@ -198,7 +198,7 @@ def build_search_filter(stac_request: BaseSearchPostRequest) -> dict[str, Any]:
     return {"type": "AndFilter", "collections": collections, "config": config}
 
 
-def stac_to_planet_request(stac_request: BaseSearchPostRequest) -> tuple[dict[str, Any], dict[str, Any]]:
+def stac_to_planet_request(stac_request: POST_REQUEST_MODEL) -> tuple[dict[str, Any], dict[str, Any]]:  # pyright: ignore[reportInvalidTypeForm]
     planet_parameters: dict[str, Any] = {}
     search_filter = build_search_filter(stac_request)
     planet_request: dict[str, Any] = {"filter": search_filter}
