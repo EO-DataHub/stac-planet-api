@@ -18,15 +18,6 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pygeofilter import ast as pygeofilter_ast
 from pygeofilter.backends.cql2_json import to_cql2
 from pygeofilter.parsers.cql2_text import parse as parse_cql2_text
-from stac_fastapi.api.models import create_post_request_model
-from stac_fastapi.extensions.core import (
-    FieldsExtension,
-    FilterExtension,
-    QueryExtension,
-    SortExtension,
-    TokenPaginationExtension,
-)
-from stac_fastapi.types.search import BaseSearchPostRequest
 from stac_pydantic.item_collection import ItemCollection
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -37,22 +28,11 @@ from stac_planet_api.response_adaptor import (
     map_item,
     planet_to_stac_response,
 )
+from stac_planet_api.search_model import POST_REQUEST_MODEL
 
 settings = Settings()
 
 FERNET = Fernet(settings.fernet_key)
-
-extensions = [
-    FieldsExtension(),
-    QueryExtension(),
-    SortExtension(),
-    TokenPaginationExtension(),
-    FilterExtension(),
-]
-
-POST_REQUEST_MODEL: type[BaseSearchPostRequest] = cast(
-    type[BaseSearchPostRequest], create_post_request_model(extensions)
-)
 
 logger = logging.getLogger(__name__)
 
@@ -244,7 +224,7 @@ async def get_search(
 
 @app.post("/search")
 async def post_search(
-    search_request: BaseSearchPostRequest,
+    search_request: POST_REQUEST_MODEL,  # pyright: ignore[reportInvalidTypeForm]
     request: Request,
     credentials: Annotated[fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)],
 ) -> ItemCollection | dict[str, Any]:
@@ -258,7 +238,7 @@ async def post_search(
     """
     base_url = get_base_url(request)
 
-    if token := getattr(search_request, "token", None):
+    if token := search_request.token:
         token_parts = FERNET.decrypt(token).decode("utf-8").split("\\")
 
         credentials = fastapi.security.HTTPBasicCredentials(username=token_parts[1], password="")
