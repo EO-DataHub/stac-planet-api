@@ -240,7 +240,31 @@ def map_item(
     base_url: str,
     auth: httpx.BasicAuth,
     path: str | None = None,
+    include_assets: bool = True,
 ) -> tuple[int, dict[str, Any]]:
+    if include_assets:
+        assets = get_assets(
+            collection_id=planet_item["properties"]["item_type"],
+            thumbnail_href=planet_item["_links"]["thumbnail"],
+            assets_href=planet_item["_links"]["assets"],
+            auth=auth,
+            path=path,
+        )
+    else:
+        assets = {
+            "external_thumbnail": {
+                "href": planet_item["_links"]["thumbnail"],
+                "roles": ["external_thumbnail"],
+                "type": "image/png",
+            }
+        }
+        if path:
+            assets["thumbnail"] = {
+                "href": f"{path}/thumbnail",
+                "roles": ["thumbnail"],
+                "type": "image/png",
+            }
+
     return order, {
         "type": "Feature",
         "stac_version": "1.0.0",
@@ -258,13 +282,7 @@ def map_item(
             collection_id=planet_item["properties"]["item_type"],
             item_id=planet_item["id"],
         ),
-        "assets": get_assets(
-            collection_id=planet_item["properties"]["item_type"],
-            thumbnail_href=planet_item["_links"]["thumbnail"],
-            assets_href=planet_item["_links"]["assets"],
-            auth=auth,
-            path=path,
-        ),
+        "assets": assets,
     }
 
 
@@ -317,23 +335,32 @@ def planet_to_stac_response(
     base_url: str,
     auth: httpx.BasicAuth,
     api_key: str,
+    include_assets: bool = True,
 ) -> dict[str, Any]:
     stac_items: dict[int, dict[str, Any]] = {}
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        fut = []
+    if include_assets:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            fut = []
+            for order, planet_item in enumerate(planet_response["features"]):
+                collection_id = planet_item["properties"]["item_type"]
+                item_id = planet_item["id"]
+                item_path = f"{base_url}collections/{collection_id}/items/{item_id}"
+                fut.append(executor.submit(map_item, order, planet_item, base_url, auth, item_path))
+
+            for r in concurrent.futures.as_completed(fut):
+                try:
+                    order, data = r.result()
+                    stac_items[order] = data
+                except json.decoder.JSONDecodeError:
+                    pass
+    else:
         for order, planet_item in enumerate(planet_response["features"]):
             collection_id = planet_item["properties"]["item_type"]
             item_id = planet_item["id"]
             item_path = f"{base_url}collections/{collection_id}/items/{item_id}"
-            fut.append(executor.submit(map_item, order, planet_item, base_url, auth, item_path))
-
-        for r in concurrent.futures.as_completed(fut):
-            try:
-                order, data = r.result()
-                stac_items[order] = data
-            except json.decoder.JSONDecodeError:
-                pass
+            _, data = map_item(order, planet_item, base_url, auth, item_path, include_assets=False)
+            stac_items[order] = data
 
     return {
         "type": "FeatureCollection",
