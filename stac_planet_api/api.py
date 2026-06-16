@@ -60,7 +60,7 @@ app.add_middleware(HeaderMiddleware)
 
 security = HTTPBasic(auto_error=False)
 
-MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "10"))
+MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "100"))
 
 
 def get_base_url(request: Request) -> str:
@@ -227,7 +227,7 @@ async def post_search(
     search_request: POST_REQUEST_MODEL,  # pyright: ignore[reportInvalidTypeForm]
     request: Request,
     credentials: Annotated[fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)],
-    minimal_assets: Annotated[bool, Query(False)] = False,
+    minimal_assets: Annotated[bool, Query()] = False,
 ) -> ItemCollection | dict[str, Any]:
     """Search planet items.
 
