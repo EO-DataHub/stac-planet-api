@@ -227,7 +227,7 @@ async def post_search(
     search_request: POST_REQUEST_MODEL,  # pyright: ignore[reportInvalidTypeForm]
     request: Request,
     credentials: Annotated[fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)],
-    minimal_assets: bool = Query(False),
+    minimal_assets: Annotated[bool, Query(False)] = False,
 ) -> ItemCollection | dict[str, Any]:
     """Search planet items.
 
