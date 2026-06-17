@@ -12,7 +12,7 @@ import fastapi.security
 import httpx
 import orjson
 from cryptography.fernet import Fernet
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pygeofilter import ast as pygeofilter_ast
@@ -60,7 +60,7 @@ app.add_middleware(HeaderMiddleware)
 
 security = HTTPBasic(auto_error=False)
 
-MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "10"))
+MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "100"))
 
 
 def get_base_url(request: Request) -> str:
@@ -227,6 +227,7 @@ async def post_search(
     search_request: POST_REQUEST_MODEL,  # pyright: ignore[reportInvalidTypeForm]
     request: Request,
     credentials: Annotated[fastapi.security.HTTPBasicCredentials, fastapi.Depends(security)],
+    minimal_assets: Annotated[bool, Query()] = False,
 ) -> ItemCollection | dict[str, Any]:
     """Search planet items.
 
@@ -302,6 +303,7 @@ async def post_search(
         base_url=base_url,
         auth=auth,
         api_key=api_key,
+        include_assets=not minimal_assets,
     )
 
 
