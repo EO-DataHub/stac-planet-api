@@ -48,7 +48,7 @@ def test_post_search_preserves_cql2_filter() -> None:
     captured = {}
 
     def capture_stac_to_planet_request(stac_request: BaseSearchPostRequest) -> tuple[dict[str, Any], dict[str, Any]]:
-        captured["filter"] = getattr(stac_request, "filter", None)
+        captured["filter"] = getattr(stac_request, "filter_expr", None)
         return {}, {"filter": {}, "item_types": ["PSScene"]}
 
     with (

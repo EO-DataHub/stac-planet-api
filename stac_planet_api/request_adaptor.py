@@ -170,7 +170,7 @@ def build_search_filter(stac_request: POST_REQUEST_MODEL) -> dict[str, Any]:  # 
         config.append(datetime_filter(datetime_str))
     # Multiple field filters, e.g.: "range", "string", "numberin
 
-    if stac_filter := getattr(stac_request, "filter", None):
+    if stac_filter := getattr(stac_request, "filter_expr", None):
         planet_filter = convert_filter(stac_filter)
         if planet_filter is not None:
             collections.extend(planet_filter.pop("collections", []))

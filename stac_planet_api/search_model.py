@@ -1,7 +1,7 @@
 from typing import cast
 
 from stac_fastapi.api.models import create_post_request_model
-from stac_fastapi.extensions.core import (
+from stac_fastapi.extensions import (
     FieldsExtension,
     FilterExtension,
     QueryExtension,
