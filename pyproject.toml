@@ -21,7 +21,7 @@ dependencies = [
     "pydantic-settings>=2.4.0",
     "stac-fastapi-api==6.6.0",
     "stac-fastapi-extensions==6.6.0",
-    "stac-fastapi-types==6.6.0",
+    "stac-fastapi-types==7.0.0",
     "stac-pydantic>=3.1.1",
     "uvicorn>=0.30.0",
 ]
