@@ -45,6 +45,8 @@ build-backend = "hatchling.build"
 [tool.uv]
 package = true
 exclude-newer = "7 days"
+# brotli 1.2.1 fixes CVE-2026-111497; drop this once it is older than 7 days
+exclude-newer-package = { brotli = false }
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
